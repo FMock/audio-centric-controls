@@ -37,9 +37,14 @@ public class AnalogMeter : FrameworkElement, IRenderTickable
     private static readonly Point Center = new(500, 500);
     private const double BezelRadius = 482;
     private const double FaceRadius = 400;
-    private static readonly Point Pivot = new(500, 804);
-    private const double ArcRadius = 480;
-    private static readonly ArcGeometry Arc = new(-42, 42);
+    // Scale geometry follows the reference artwork: the pivot sits just under the pod hump, and the arc is
+    // flatter and smaller than the window, so the outermost labels stay at ~85% of the window radius.
+    // That keeps them clear of the bezel shadow and glass reflection.
+    private static readonly Point Pivot = new(500, 665);
+    private const double ArcRadius = 360;
+    private static readonly ArcGeometry Arc = new(-54, 54);
+    private const double MajorTickLength = 24;
+    private const double MinorTickLength = 13;
 
     /// <summary>The value-to-angle transform shared by the needle and scale (degrees, 0 = vertical).</summary>
     public static ArcGeometry NeedleArc => Arc;
@@ -572,83 +577,83 @@ public class AnalogMeter : FrameworkElement, IRenderTickable
         double aMin = AngleOf(scale.Minimum), aMax = AngleOf(scale.Maximum);
 
         // Main arc and coloured zones
-        dc.DrawGeometry(null, VintageArt.FrozenPen(ink, 7, PenLineCap.Flat), ArcLine(ArcRadius, aMin, aMax));
+        dc.DrawGeometry(null, VintageArt.FrozenPen(ink, 6, PenLineCap.Flat), ArcLine(ArcRadius, aMin, aMax));
         foreach (var z in scale.Zones)
         {
             double a0 = AngleOf(Math.Max(z.Start, scale.Minimum)), a1 = AngleOf(Math.Min(z.End, scale.Maximum));
             if (a1 <= a0) continue;
             var brush = VintageArt.Frozen(ZoneInk(z.Kind));
             // Band widens toward the top of the zone, like the printed red sector on classic dials.
-            dc.DrawGeometry(brush, null, ArcBand(a0, a1, ArcRadius - 6, ArcRadius - 30, ArcRadius + 4));
+            dc.DrawGeometry(brush, null, ArcBand(a0, a1, ArcRadius - 5, ArcRadius - 24, ArcRadius + 3));
         }
 
         // Minor ticks
         foreach (var v in scale.MinorTicks)
         {
             double a = AngleOf(v);
-            var pen = VintageArt.FrozenPen(VintageArt.Frozen(ZoneInk(scale.ZoneAt(v))), 3.2);
-            dc.DrawLine(pen, Polar(ArcRadius, a), Polar(ArcRadius + 18, a));
+            var pen = VintageArt.FrozenPen(VintageArt.Frozen(ZoneInk(scale.ZoneAt(v))), 3);
+            dc.DrawLine(pen, Polar(ArcRadius, a), Polar(ArcRadius + MinorTickLength, a));
         }
 
         // Major ticks and labels
-        double labelSize = scale.MajorTicks.Count <= 11 && scale.MajorTicks.All(t => (t.Label?.Length ?? 0) <= 2) ? 50 : 38;
+        double labelSize = scale.MajorTicks.Count <= 11 && scale.MajorTicks.All(t => (t.Label?.Length ?? 0) <= 2) ? 46 : 33;
         foreach (var t in scale.MajorTicks)
         {
             double a = AngleOf(t.Value);
             var brush = VintageArt.Frozen(ZoneInk(scale.ZoneAt(t.Value)));
-            dc.DrawLine(VintageArt.FrozenPen(brush, 5.5), Polar(ArcRadius - 2, a), Polar(ArcRadius + 34, a));
+            dc.DrawLine(VintageArt.FrozenPen(brush, 5), Polar(ArcRadius - 2, a), Polar(ArcRadius + MajorTickLength, a));
             if (!string.IsNullOrEmpty(t.Label))
             {
                 var ft = VintageArt.Text(t.Label, labelSize, brush, FontWeights.SemiBold, ppd);
-                VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius + 34 + labelSize * 0.62, a), a * 0.85);
+                VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius + MajorTickLength + labelSize * 0.62, a), a * 0.85);
             }
         }
 
         // End caps
-        dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(ZoneInk(scale.ZoneAt(scale.Minimum))), 6), Polar(ArcRadius - 14, aMin), Polar(ArcRadius + 3, aMin));
-        dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(ZoneInk(scale.ZoneAt(scale.Maximum))), 6), Polar(ArcRadius - 32, aMax), Polar(ArcRadius + 3, aMax));
+        dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(ZoneInk(scale.ZoneAt(scale.Minimum))), 6), Polar(ArcRadius - 12, aMin), Polar(ArcRadius + 3, aMin));
+        dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(ZoneInk(scale.ZoneAt(scale.Maximum))), 6), Polar(ArcRadius - 26, aMax), Polar(ArcRadius + 3, aMax));
 
         // Secondary (percentage) scale: dots with small labels inside the arc
         foreach (var t in scale.SecondaryTicks)
         {
             double a = Arc.AngleFor(scale.ToNormalized(t.Value));
-            dc.DrawEllipse(ink, null, Polar(ArcRadius - 52, a), 8, 8);
+            dc.DrawEllipse(ink, null, Polar(ArcRadius - 38, a), 7, 7);
             if (!string.IsNullOrEmpty(t.Label))
             {
-                var ft = VintageArt.Text(t.Label, 29, ink, FontWeights.SemiBold, ppd);
-                VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius - 90, a), a * 0.85);
+                var ft = VintageArt.Text(t.Label, 25, ink, FontWeights.SemiBold, ppd);
+                VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius - 66, a), a * 0.85);
             }
         }
 
         // End glyphs
         if (scale.LowEndGlyph is { } lo)
         {
-            var ft = VintageArt.Text(lo, 64, ink, FontWeights.Bold, ppd);
-            VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius - 140, Arc.StartAngle - 6));
+            var ft = VintageArt.Text(lo, 58, ink, FontWeights.Bold, ppd);
+            VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius + 10, Arc.StartAngle - 11));
         }
         if (scale.HighEndGlyph is { } hi)
         {
-            var ft = VintageArt.Text(hi, 64, VintageArt.Frozen(ZoneInk(scale.ZoneAt(scale.Maximum))), FontWeights.Bold, ppd);
-            VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius - 140, Arc.EndAngle + 6));
+            var ft = VintageArt.Text(hi, 58, VintageArt.Frozen(ZoneInk(scale.ZoneAt(scale.Maximum))), FontWeights.Bold, ppd);
+            VintageArt.DrawCenteredText(dc, ft, Polar(ArcRadius + 10, Arc.EndAngle + 11));
         }
 
         // Legend
         bool hasCaption = !string.IsNullOrEmpty(scale.Caption);
         if (!string.IsNullOrEmpty(scale.Title))
         {
-            double size = scale.Title.Length <= 2 ? 104 : 84;
+            double size = scale.Title.Length <= 2 ? 92 : 76;
             var ft = VintageArt.Text(scale.Title, size, ink, FontWeights.Bold, ppd);
-            VintageArt.DrawCenteredText(dc, ft, new Point(500, hasCaption ? 455 : 500));
+            VintageArt.DrawCenteredText(dc, ft, new Point(500, hasCaption ? 468 : 520));
         }
         if (hasCaption)
         {
-            var ft = VintageArt.Text(scale.Caption, 36, ink, FontWeights.SemiBold, ppd);
-            var c = new Point(500, 525);
+            var ft = VintageArt.Text(scale.Caption, 32, ink, FontWeights.SemiBold, ppd);
+            var c = new Point(500, 528);
             VintageArt.DrawCenteredText(dc, ft, c);
-            double half = ft.Width / 2 + 18;
+            double half = ft.Width / 2 + 16;
             var rule = VintageArt.FrozenPen(ink, 3);
-            dc.DrawLine(rule, new Point(c.X - half - 90, c.Y), new Point(c.X - half, c.Y));
-            dc.DrawLine(rule, new Point(c.X + half, c.Y), new Point(c.X + half + 90, c.Y));
+            dc.DrawLine(rule, new Point(c.X - half - 80, c.Y), new Point(c.X - half, c.Y));
+            dc.DrawLine(rule, new Point(c.X + half, c.Y), new Point(c.X + half + 80, c.Y));
         }
     }
 
@@ -781,7 +786,7 @@ public class AnalogMeter : FrameworkElement, IRenderTickable
     {
         using var dc = _peakMarker.RenderOpen();
         var pen = VintageArt.FrozenPen(VintageArt.Frozen(Color.FromArgb(230, 0xF0, 0x8A, 0x00)), 4, PenLineCap.Round);
-        dc.DrawLine(pen, new Point(Pivot.X, Pivot.Y - ArcRadius + 40), new Point(Pivot.X, Pivot.Y - ArcRadius - 4));
+        dc.DrawLine(pen, new Point(Pivot.X, Pivot.Y - ArcRadius + 30), new Point(Pivot.X, Pivot.Y - ArcRadius - 4));
     }
 
     private void UpdatePeakMarker()
