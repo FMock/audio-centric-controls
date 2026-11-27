@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Framework-neutral: no WPF, audio-driver or DSP dependencies. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AudioCentric.Controls</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PackageId>AudioCentric.Controls.Core</PackageId>
+    <Description>Framework-neutral scale mappings, display dynamics, state models and data contracts for Audio-Centric-Controls.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AudioCentric.Controls.Core.Tests" />
+  </ItemGroup>
+</Project>

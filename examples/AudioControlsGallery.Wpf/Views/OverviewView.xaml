@@ -1,0 +1,82 @@
+<UserControl x:Class="AudioControlsGallery.Views.OverviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:acc="https://github.com/FMock/audio-centric-controls"
+             xmlns:core="clr-namespace:AudioCentric.Controls.Input;assembly=AudioCentric.Controls.Core">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Border Style="{StaticResource ConsolePanel}" Margin="28" MaxWidth="880" VerticalAlignment="Top">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="CH 1 · STRIP" Style="{StaticResource Caption}" DockPanel.Dock="Left" HorizontalAlignment="Left" />
+                    <TextBlock Text="{Binding CorrelationText, StringFormat=CORR {0}}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
+                </DockPanel>
+
+                <!-- Analog meters -->
+                <UniformGrid Columns="2">
+                    <StackPanel Margin="6">
+                        <acc:AnalogMeter x:Name="VuMeter" Height="330" MeterType="Vu"
+                                         Value="{Binding VuLeft}"
+                                         IsOverloaded="{Binding OverloadLeft}"
+                                         OverloadLabel="PEAK"
+                                         IsBacklightEnabled="{Binding IsPowered}"
+                                         NeedleDynamics="{Binding NeedleDynamics}"
+                                         OverloadLatchMode="{Binding LatchMode}"
+                                         FaceColor="{Binding Face.Color}" />
+                        <TextBlock Text="{Binding VuText}" Style="{StaticResource Readout}" />
+                    </StackPanel>
+                    <StackPanel Margin="6">
+                        <acc:AnalogMeter x:Name="PeakMeter" Height="330" MeterType="{Binding PeakMeterType}"
+                                         Value="{Binding PeakLeft}"
+                                         IsOverloaded="{Binding OverloadLeft}"
+                                         IsPeakHoldEnabled="{Binding PeakHold}"
+                                         IsBacklightEnabled="{Binding IsPowered}"
+                                         NeedleDynamics="{Binding NeedleDynamics}"
+                                         OverloadLatchMode="{Binding LatchMode}"
+                                         FaceColor="{Binding Face.Color}" />
+                        <TextBlock Text="{Binding PeakText}" Style="{StaticResource Readout}" />
+                    </StackPanel>
+                </UniformGrid>
+
+                <!-- Gain knob, channel fader and stereo LED bar -->
+                <Grid Margin="6,22,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,28,0">
+                        <acc:RotaryKnob Width="96" Height="96" Minimum="-24" Maximum="24" DefaultValue="0" Detent="0" Step="0.5"
+                                        Unit="dB" Value="{Binding InputTrimDb}" ToolTip="Input gain (drag, wheel or arrows; double-click resets)" />
+                        <TextBlock Text="GAIN" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding TrimText}" Style="{StaticResource Readout}" FontSize="13" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <DockPanel>
+                            <TextBlock Text="Channel fader" Foreground="{StaticResource TextBrush}" />
+                            <TextBlock Text="{Binding FaderText}" Style="{StaticResource Readout}" HorizontalAlignment="Right" Margin="0" />
+                        </DockPanel>
+                        <acc:ConsoleFader Orientation="Horizontal" Height="64" Margin="0,6,0,6"
+                                          ValueDb="{Binding FaderDb}" IsMuted="{Binding IsMuted}" />
+                        <acc:LedBarMeter Height="40" ChannelCount="2" ShowScaleLabels="True"
+                                         Value="{Binding PeakLeft}" Value2="{Binding PeakRight}"
+                                         IsClipping="{Binding Overload}" IsDotMode="{Binding LedDotMode}" />
+                    </StackPanel>
+                </Grid>
+
+                <Rectangle Height="1" Fill="{StaticResource PanelBorderBrush}" Margin="0,18,0,14" />
+
+                <DockPanel LastChildFill="False">
+                    <acc:IlluminatedToggle DockPanel.Dock="Left" ShowPowerIcon="True" Width="132"
+                                           OnLabel="Power on" OffLabel="Power off" IsChecked="{Binding IsPowered}" />
+                    <acc:IlluminatedToggle DockPanel.Dock="Left" Margin="14,0,0,0" SwitchStyle="SquareCap" Width="42" Height="42"
+                                           OnLabel="MUTE" LampColor="#FFFF3A26" IsChecked="{Binding IsMuted}"
+                                           ToolTip="Mute (the host ramps gain to zero)" />
+                    <acc:IlluminatedToggle DockPanel.Dock="Left" Margin="10,0,0,0" SwitchStyle="SquareCap" Width="42" Height="42"
+                                           OnLabel="RESET" Mode="Momentary" LampColor="#FFFFB01E" Click="OnResetOverload"
+                                           ToolTip="Reset the latched overload lamps (you can also click a lamp)" />
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Note}" MaxWidth="360" VerticalAlignment="Center" TextAlignment="Right"
+                               Text="Hot transients in the program source push the peak past 0 dBFS. The overload lamps latch until reset." />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </ScrollViewer>
+</UserControl>

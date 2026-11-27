@@ -1,0 +1,64 @@
+<UserControl x:Class="AudioControlsGallery.Views.ScalingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:acc="https://github.com/FMock/audio-centric-controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28">
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <TextBlock Text="Same control, any size" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Style="{StaticResource Note}" Margin="0,0,0,14"
+                               Text="Bezel, dial, lettering, needle and glass are vector artwork in a normalized design space, rasterized at the target size and DPI. The fine grain texture is tiled at one texel per device pixel, so it never magnifies into visible pixels. Move the window to a monitor with different scaling: the per-monitor DPI manifest makes WPF re-render crisply." />
+                    <WrapPanel VerticalAlignment="Bottom">
+                        <StackPanel Margin="0,0,20,0" VerticalAlignment="Bottom">
+                            <acc:AnalogMeter Width="96" Height="96" MeterType="Peak" Value="{Binding PeakLeft}" IsOverloaded="{Binding OverloadLeft}"
+                                             IsBacklightEnabled="{Binding IsPowered}" FaceColor="{Binding Face.Color}" />
+                            <TextBlock Text="96 DIP" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,20,0" VerticalAlignment="Bottom">
+                            <acc:AnalogMeter Width="160" Height="160" MeterType="Vu" Value="{Binding VuLeft}" IsOverloaded="{Binding OverloadLeft}"
+                                             IsBacklightEnabled="{Binding IsPowered}" FaceColor="{Binding Face.Color}" />
+                            <TextBlock Text="160 DIP" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,20,0" VerticalAlignment="Bottom">
+                            <acc:AnalogMeter Width="260" Height="260" MeterType="Rms" ShowOverloadLamp="False" Value="{Binding RmsLeft}"
+                                             IsBacklightEnabled="{Binding IsPowered}" FaceColor="{Binding Face.Color}" />
+                            <TextBlock Text="260 DIP" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                                <acc:RotaryKnob Width="40" Height="40" Minimum="-24" Maximum="24" Detent="0" Value="{Binding InputTrimDb}" VerticalAlignment="Bottom" />
+                                <acc:RotaryKnob Width="70" Height="70" Minimum="-24" Maximum="24" Detent="0" Value="{Binding InputTrimDb}" VerticalAlignment="Bottom" Margin="10,0" />
+                                <acc:RotaryKnob Width="140" Height="140" Minimum="-24" Maximum="24" Detent="0" Value="{Binding InputTrimDb}" VerticalAlignment="Bottom" />
+                            </StackPanel>
+                            <TextBlock Text="40 · 70 · 140 DIP (one shared value)" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,12">
+                        <TextBlock Text="Zoom" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock x:Name="ZoomText" Style="{StaticResource Readout}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <acc:ConsoleFader x:Name="Zoom" Orientation="Horizontal" Width="320" Height="56"
+                                              ValueDb="0" ToolTip="Zoom factor, mapped from the fader (0 dB = 1×)" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Note}" Margin="0,0,0,12" Text="This meter is 320 DIP, enlarged by a LayoutTransform (fader: 0 dB = 1×, +10 dB ≈ 3.2×). A bitmap would blur; the vector artwork stays sharp." />
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ContentControl x:Name="ZoomHost" HorizontalAlignment="Left" Focusable="False">
+                        <ContentControl.LayoutTransform>
+                            <ScaleTransform x:Name="ZoomTransform" />
+                        </ContentControl.LayoutTransform>
+                        <acc:AnalogMeter Width="320" Height="320" MeterType="Vu" Value="{Binding VuLeft}" IsOverloaded="{Binding OverloadLeft}" OverloadLabel="PEAK"
+                                         IsBacklightEnabled="{Binding IsPowered}" FaceColor="{Binding Face.Color}" />
+                    </ContentControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

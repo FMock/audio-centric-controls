@@ -1,0 +1,59 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5A1C3E10-0001-4C4B-9D3E-000000000001}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5A1C3E10-0001-4C4B-9D3E-000000000002}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{5A1C3E10-0001-4C4B-9D3E-000000000003}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioCentric.Controls.Core", "src\AudioCentric.Controls.Core\AudioCentric.Controls.Core.csproj", "{B8DBA7AC-A2D3-4E85-9698-7C4E710CA796}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioCentric.Controls.Wpf", "src\AudioCentric.Controls.Wpf\AudioCentric.Controls.Wpf.csproj", "{ABCA6990-C7CD-48D7-92B5-FC45A4558FE0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioCentric.Controls.Core.Tests", "tests\AudioCentric.Controls.Core.Tests\AudioCentric.Controls.Core.Tests.csproj", "{87288C35-660D-4F7C-A82B-34178D9CD739}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioCentric.Controls.Wpf.Tests", "tests\AudioCentric.Controls.Wpf.Tests\AudioCentric.Controls.Wpf.Tests.csproj", "{6962E098-BE47-4661-AD0B-DA6821483032}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioControlsGallery.Wpf", "examples\AudioControlsGallery.Wpf\AudioControlsGallery.Wpf.csproj", "{45A56669-59E0-4E81-A5FA-BD6370E9EB89}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B8DBA7AC-A2D3-4E85-9698-7C4E710CA796}.Debug|x64.ActiveCfg = Debug|x64
+		{B8DBA7AC-A2D3-4E85-9698-7C4E710CA796}.Debug|x64.Build.0 = Debug|x64
+		{B8DBA7AC-A2D3-4E85-9698-7C4E710CA796}.Release|x64.ActiveCfg = Release|x64
+		{B8DBA7AC-A2D3-4E85-9698-7C4E710CA796}.Release|x64.Build.0 = Release|x64
+		{ABCA6990-C7CD-48D7-92B5-FC45A4558FE0}.Debug|x64.ActiveCfg = Debug|x64
+		{ABCA6990-C7CD-48D7-92B5-FC45A4558FE0}.Debug|x64.Build.0 = Debug|x64
+		{ABCA6990-C7CD-48D7-92B5-FC45A4558FE0}.Release|x64.ActiveCfg = Release|x64
+		{ABCA6990-C7CD-48D7-92B5-FC45A4558FE0}.Release|x64.Build.0 = Release|x64
+		{87288C35-660D-4F7C-A82B-34178D9CD739}.Debug|x64.ActiveCfg = Debug|x64
+		{87288C35-660D-4F7C-A82B-34178D9CD739}.Debug|x64.Build.0 = Debug|x64
+		{87288C35-660D-4F7C-A82B-34178D9CD739}.Release|x64.ActiveCfg = Release|x64
+		{87288C35-660D-4F7C-A82B-34178D9CD739}.Release|x64.Build.0 = Release|x64
+		{6962E098-BE47-4661-AD0B-DA6821483032}.Debug|x64.ActiveCfg = Debug|x64
+		{6962E098-BE47-4661-AD0B-DA6821483032}.Debug|x64.Build.0 = Debug|x64
+		{6962E098-BE47-4661-AD0B-DA6821483032}.Release|x64.ActiveCfg = Release|x64
+		{6962E098-BE47-4661-AD0B-DA6821483032}.Release|x64.Build.0 = Release|x64
+		{45A56669-59E0-4E81-A5FA-BD6370E9EB89}.Debug|x64.ActiveCfg = Debug|x64
+		{45A56669-59E0-4E81-A5FA-BD6370E9EB89}.Debug|x64.Build.0 = Debug|x64
+		{45A56669-59E0-4E81-A5FA-BD6370E9EB89}.Release|x64.ActiveCfg = Release|x64
+		{45A56669-59E0-4E81-A5FA-BD6370E9EB89}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B8DBA7AC-A2D3-4E85-9698-7C4E710CA796} = {5A1C3E10-0001-4C4B-9D3E-000000000001}
+		{ABCA6990-C7CD-48D7-92B5-FC45A4558FE0} = {5A1C3E10-0001-4C4B-9D3E-000000000001}
+		{87288C35-660D-4F7C-A82B-34178D9CD739} = {5A1C3E10-0001-4C4B-9D3E-000000000002}
+		{6962E098-BE47-4661-AD0B-DA6821483032} = {5A1C3E10-0001-4C4B-9D3E-000000000002}
+		{45A56669-59E0-4E81-A5FA-BD6370E9EB89} = {5A1C3E10-0001-4C4B-9D3E-000000000003}
+	EndGlobalSection
+EndGlobal
