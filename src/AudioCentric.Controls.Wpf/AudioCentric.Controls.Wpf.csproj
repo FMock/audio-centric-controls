@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>AudioCentric.Controls.Wpf</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <PackageId>AudioCentric.Controls.Wpf</PackageId>
+    <Description>WPF renderer for Audio-Centric-Controls: vintage analog meters, LED meters, knobs, faders, switches and audio displays.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AudioCentric.Controls.Core\AudioCentric.Controls.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AudioCentric.Controls.Wpf.Tests" />
+  </ItemGroup>
+</Project>

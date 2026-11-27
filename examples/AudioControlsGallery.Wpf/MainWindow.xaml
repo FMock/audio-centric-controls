@@ -1,0 +1,95 @@
+<Window x:Class="AudioControlsGallery.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:acc="https://github.com/FMock/audio-centric-controls"
+        Title="Audio-Centric Controls Gallery"
+        Width="1320" Height="900" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBrush}"
+        UseLayoutRounding="True">
+    <Grid Background="{StaticResource WindowBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="210" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Header -->
+        <Border Grid.ColumnSpan="2" Padding="22,14" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0,0,0,1">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#FF1E211E" Offset="0" />
+                    <GradientStop Color="#FF141614" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <DockPanel>
+                <Ellipse DockPanel.Dock="Right" Width="10" Height="10" VerticalAlignment="Center"
+                         ToolTip="Engine running">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="#FF2A3A28" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPowered}" Value="True">
+                                    <Setter Property="Fill" Value="#FF6CF24A" />
+                                    <Setter Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="#FF6CF24A" BlurRadius="10" ShadowDepth="0" Opacity="0.9" />
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="AUDIO-CENTRIC · CONTROL GALLERY" FontFamily="Bahnschrift, Segoe UI" FontSize="17"
+                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <!-- Navigation -->
+        <Border Grid.Row="1" Background="#FF111211" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0,0,1,0">
+            <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" Margin="0,10,0,0"
+                     ItemContainerStyle="{StaticResource NavItem}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     SelectionChanged="OnNavSelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Title}" FontFamily="Bahnschrift, Segoe UI" FontSize="15" />
+                            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Note}" HorizontalAlignment="Left" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- Page -->
+        <ContentControl x:Name="PageHost" Grid.Row="1" Grid.Column="1" Focusable="False" />
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Padding="18,10" Background="#FF141614"
+                BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="False">
+                <acc:IlluminatedToggle DockPanel.Dock="Left" ShowPowerIcon="True" Width="132"
+                                       OnLabel="Power on" OffLabel="Power off"
+                                       IsChecked="{Binding IsPowered}" ToolTip="Engine power (meter backlights follow it)" />
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="SOURCE" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,10,4" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Program"
+                                 IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Program}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Ref tone −18 dBFS"
+                                 IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=ReferenceTone}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Noise"
+                                 IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Noise}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Silence"
+                                 IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Silence}" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Right" Text="SIMULATED SIGNAL · 48 kHz" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
