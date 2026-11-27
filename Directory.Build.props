@@ -1,0 +1,35 @@
+<Project>
+  <!--
+    Shared build settings for every project in the repository.
+    Only x64 Debug/Release are supported. Output goes to bin\<Platform>\<Configuration>\ at the repo root.
+  -->
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+
+    <!-- Default to x64 when built outside the solution (e.g. `dotnet build path\to\proj.csproj`). -->
+    <Platform Condition="'$(Platform)' == '' Or '$(Platform)' == 'AnyCPU' Or '$(Platform)' == 'Any CPU'">x64</Platform>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <OutputPath>$(RepoRoot)bin\$(Platform)\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+
+    <Version>0.1.0</Version>
+    <Authors>Audio-Centric-Controls contributors</Authors>
+    <Product>Audio-Centric-Controls</Product>
+    <Copyright>Copyright (c) Audio-Centric-Controls contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/FMock/audio-centric-controls</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
