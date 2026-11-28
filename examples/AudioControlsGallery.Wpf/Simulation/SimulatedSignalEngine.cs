@@ -15,6 +15,15 @@ public enum SignalKind
     Sweep,
     /// <summary>Digital silence.</summary>
     Silence,
+    /// <summary>Tunable test oscillator (see <see cref="SimulatedSignalEngine.OscillatorFrequency"/>), mono.</summary>
+    Oscillator,
+}
+
+public enum OscillatorWaveform
+{
+    Sine,
+    Triangle,
+    Square,
 }
 
 /// <summary>
@@ -48,6 +57,11 @@ public sealed class SimulatedSignalEngine : IDisposable
     private volatile bool _eqEnabled = true;
     private readonly BiquadState[] _eqL = new BiquadState[MaxEqBands], _eqR = new BiquadState[MaxEqBands];
     private volatile bool _invertRight, _mono;
+
+    // Test oscillator: band-limited (PolyBLEP) square, and a triangle integrated from it, so the spectrum stays clean.
+    private double _oscFrequency = 1000, _oscLevel = Decibels.ToAmplitude(-12);
+    private volatile int _oscWaveform;
+    private double _oscPhase, _oscTriangle;
     private readonly double[] _padPhase = new double[6];
     private double _pinkL, _pinkR, _hatHpL, _hatHpR;
     private double _nextHotHit = 9.0;
@@ -66,6 +80,26 @@ public sealed class SimulatedSignalEngine : IDisposable
     public SimulatedMeterSource Left { get; }
     public SimulatedMeterSource Right { get; }
     public SimulatedCorrelationSource Correlation { get; }
+
+    /// <summary>Oscillator frequency in Hz (20 Hz … 0.45 fs).</summary>
+    public double OscillatorFrequency
+    {
+        get => Volatile.Read(ref _oscFrequency);
+        set => Volatile.Write(ref _oscFrequency, Math.Clamp(value, 1, SampleRate * 0.45));
+    }
+
+    /// <summary>Oscillator peak level in dBFS.</summary>
+    public double OscillatorLevelDb
+    {
+        get => Decibels.FromAmplitude(Volatile.Read(ref _oscLevel));
+        set => Volatile.Write(ref _oscLevel, Decibels.ToAmplitude(value));
+    }
+
+    public OscillatorWaveform OscillatorWaveform
+    {
+        get => (OscillatorWaveform)_oscWaveform;
+        set => _oscWaveform = (int)value;
+    }
 
     /// <summary>FFT analysis of the monitored (mid) signal.</summary>
     public SimulatedSpectrumSource Spectrum { get; }
@@ -158,6 +192,9 @@ public sealed class SimulatedSignalEngine : IDisposable
                 case SignalKind.Silence:
                     l = r = 0;
                     break;
+                case SignalKind.Oscillator:
+                    l = r = Oscillator();
+                    break;
                 default:
                     (l, r) = Program(t);
                     break;
@@ -175,6 +212,34 @@ public sealed class SimulatedSignalEngine : IDisposable
             _right[i] = (float)(r * _gain);
             _sample++;
         }
+    }
+
+    private double Oscillator()
+    {
+        double dt = Volatile.Read(ref _oscFrequency) / SampleRate;
+        double amp = Volatile.Read(ref _oscLevel);
+        _oscPhase += dt;
+        if (_oscPhase >= 1) _oscPhase -= 1;
+        double t = _oscPhase;
+        switch ((OscillatorWaveform)_oscWaveform)
+        {
+            case OscillatorWaveform.Sine:
+                return amp * Math.Sin(2 * Math.PI * t);
+            default:
+                double sq = (t < 0.5 ? 1 : -1) + PolyBlep(t, dt) - PolyBlep((t + 0.5) % 1, dt);
+                if ((OscillatorWaveform)_oscWaveform == OscillatorWaveform.Square) return amp * 0.8 * sq;
+                // Leaky integration of the square gives a band-limited triangle of about ±1.
+                _oscTriangle = 0.9995 * _oscTriangle + 4 * dt * sq;
+                return amp * _oscTriangle;
+        }
+    }
+
+    /// <summary>Polynomial band-limited step correction for a discontinuity at phase 0.</summary>
+    private static double PolyBlep(double t, double dt)
+    {
+        if (t < dt) { t /= dt; return t + t - t * t - 1; }
+        if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+        return 0;
     }
 
     private double White() => _rng.NextDouble() * 2 - 1;

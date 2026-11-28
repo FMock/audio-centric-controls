@@ -19,6 +19,7 @@ public partial class MainWindow : Window
         new("Meters", "VU · Peak · RMS · LED · Phase", () => new MetersView()),
         new("Inputs", "Knobs · Faders · Switches", () => new InputsView()),
         new("Displays", "Scope · Spectrum · EQ · Waveform", () => new DisplaysView()),
+        new("Vintage", "Tuning dials · Jewel lamp · Chicken heads", () => new VintageView()),
         new("Scaling", "Vector rendering at any size", () => new ScalingView()),
     };
 

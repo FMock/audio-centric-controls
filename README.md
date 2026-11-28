@@ -15,6 +15,10 @@ An open-source library of reusable audio controls and visualization components, 
 | `SpectrumAnalyzer`: log/linear axis to Nyquist, trace or fractional-octave bars (max or calibrated power sum), display averaging, peak hold, DC readout, cursor readout | ✅ |
 | `FrequencyResponseGraph`: gain and phase, theoretical vs measured curves, −3 dB markers, draggable EQ band handles that publish change requests | ✅ |
 | `CorrelationMeter`: −1…+1 edgewise meter, zone-coloured bar, explicit NO SIGNAL state, convention and window caption, MONO command button | ✅ |
+| `TuningDial`: vintage receiver dial; band scales on a rotating disc behind a hairline, logging scale, cover plate; two-way position and frequency | ✅ |
+| `BandspreadDial`: recessed fine-tuning window with an endless scale wheel | ✅ |
+| `JewelLamp`: faceted jewel pilot light in a brass or chrome bezel, with bulb warm-up | ✅ |
+| Chicken-head knobs: `RotaryKnob KnobStyle="ChickenHead"`, with `ScaleLabels` for rotary selector switches | ✅ |
 
 All artwork is procedural vector graphics. It stays sharp at any size and DPI.
 

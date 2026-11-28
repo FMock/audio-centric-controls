@@ -1,0 +1,197 @@
+<UserControl x:Class="AudioControlsGallery.Views.VintageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:acc="https://github.com/FMock/audio-centric-controls"
+             xmlns:scales="clr-namespace:AudioCentric.Controls.Scales;assembly=AudioCentric.Controls.Core">
+    <UserControl.Resources>
+        <!-- Silk-screened panel legend -->
+        <Style x:Key="Legend" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFE4E0D2" />
+            <Setter Property="FontFamily" Value="Bahnschrift SemiCondensed, Bahnschrift, Segoe UI" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <!-- Black crinkle-finish front panel -->
+        <Style x:Key="FrontPanel" TargetType="Border">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FF2C2D2E" Offset="0" />
+                        <GradientStop Color="#FF1C1D1E" Offset="1" />
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#FF0A0A0A" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="22" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28">
+
+            <!-- Communications receiver -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <TextBlock Text="Communications receiver" Style="{StaticResource SectionTitle}" />
+                    <Border Style="{StaticResource FrontPanel}" HorizontalAlignment="Left">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <acc:TuningDial Grid.RowSpan="2" Width="440" Height="440" SelectedBandIndex="{Binding RadioBand}"
+                                            Position="{Binding RadioPosition}" Frequency="{Binding RadioFrequency}"
+                                            IsBacklightEnabled="{Binding IsPowered}" />
+
+                            <StackPanel Grid.Column="1" Margin="26,6,0,0">
+                                <acc:BandspreadDial Width="300" Height="126" Value="{Binding RadioBandspread}" IsBacklightEnabled="{Binding IsPowered}" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,14,0,0">
+                                    <StackPanel Margin="0,0,30,0">
+                                        <TextBlock Text="TUNING" Style="{StaticResource Legend}" Margin="0,0,0,4" />
+                                        <acc:RotaryKnob Width="104" Height="104" Minimum="0" Maximum="1" TickCount="0" ShowValueArc="False"
+                                                        SweepAngle="330" Value="{Binding RadioPosition}" ToolTip="Main tuning (drags the dial)" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="BAND SPREAD" Style="{StaticResource Legend}" Margin="0,0,0,4" />
+                                        <acc:RotaryKnob Width="104" Height="104" Minimum="0" Maximum="100" TickCount="0" ShowValueArc="False"
+                                                        SweepAngle="330" Value="{Binding RadioBandspread}" ToolTip="Fine tuning" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="26,18,0,0" VerticalAlignment="Bottom">
+                                <StackPanel>
+                                    <acc:RotaryKnob KnobStyle="ChickenHead" Width="104" Height="104" Minimum="0" Maximum="10" ShowValueArc="False"
+                                                    ScaleColor="#FFE4E0D2" Value="{Binding RadioSensitivity}" />
+                                    <TextBlock Text="SENSITIVITY" Style="{StaticResource Legend}" />
+                                </StackPanel>
+                                <StackPanel Margin="10,0,0,0">
+                                    <acc:RotaryKnob KnobStyle="ChickenHead" Width="104" Height="104" Minimum="0" Maximum="3" Step="1" SweepAngle="100"
+                                                    ScaleLabels="1,2,3,4" ScaleColor="#FFE4E0D2" ShowValueArc="False" Value="{Binding RadioBandKnob}" />
+                                    <TextBlock Text="BAND SELECTOR" Style="{StaticResource Legend}" />
+                                </StackPanel>
+                                <StackPanel Margin="10,0,0,0">
+                                    <acc:RotaryKnob KnobStyle="ChickenHead" Width="104" Height="104" Minimum="0" Maximum="10" ShowValueArc="False"
+                                                    ScaleColor="#FFE4E0D2" Value="{Binding RadioVolume}" />
+                                    <TextBlock Text="VOLUME" Style="{StaticResource Legend}" />
+                                </StackPanel>
+                                <StackPanel Margin="10,0,0,0">
+                                    <acc:RotaryKnob KnobStyle="ChickenHead" Width="104" Height="104" Minimum="0" Maximum="2" Step="1" SweepAngle="90"
+                                                    ScaleLabels="HIGH,MED,LOW" ScaleColor="#FFE4E0D2" ShowValueArc="False" Value="{Binding RadioTone}" />
+                                    <TextBlock Text="TONE" Style="{StaticResource Legend}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="4,14,0,0">
+                        <acc:JewelLamp Width="40" Height="40" IsLit="{Binding IsPowered}" VerticalAlignment="Center" />
+                        <TextBlock Text="POWER" Style="{StaticResource Legend}" VerticalAlignment="Center" Margin="8,0,24,0" />
+                        <TextBlock Text="{Binding RadioReadout}" Style="{StaticResource Readout}" VerticalAlignment="Center" Margin="0" />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Note}" Margin="4,10,0,0"
+                               Text="Drag the dial, or turn TUNING: both bind the same position. BAND SELECTOR is a chicken-head knob used as a 4-position switch (ScaleLabels + Step=1); the dial keeps its position and reads the new band, like a real band switch. The bandspread wheel is endless (…95, 0, 5…). The jewel follows the Power switch in the footer, with a short bulb warm-up." />
+                </StackPanel>
+            </Border>
+
+            <!-- Audio oscillator -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <TextBlock Text="Audio oscillator (drives the simulated signal)" Style="{StaticResource SectionTitle}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource FrontPanel}" VerticalAlignment="Top">
+                            <StackPanel>
+                                <acc:TuningDial Width="420" Height="218" ShowCoverPlate="False" Bands="{x:Static scales:DialPresets.AudioOscillator}"
+                                                SelectedBandIndex="{Binding OscRange}" Frequency="{Binding OscDialFrequency}"
+                                                LoggingScale="{x:Null}" IsBacklightEnabled="{Binding IsPowered}" />
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <acc:RotaryKnob KnobStyle="ChickenHead" Width="104" Height="104" Minimum="0" Maximum="2" Step="1" SweepAngle="90"
+                                                        ScaleLabels="×1,×10,×100" ScaleColor="#FFE4E0D2" ShowValueArc="False" Value="{Binding OscRangeKnob}" />
+                                        <TextBlock Text="RANGE" Style="{StaticResource Legend}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <acc:RotaryKnob KnobStyle="ChickenHead" Width="104" Height="104" Minimum="0" Maximum="2" Step="1" SweepAngle="90"
+                                                        ScaleLabels="SINE,TRI,SQR" ScaleColor="#FFE4E0D2" ShowValueArc="False" Value="{Binding OscWaveform}" />
+                                        <TextBlock Text="WAVEFORM" Style="{StaticResource Legend}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <acc:RotaryKnob KnobStyle="ChickenHead" KnobColor="#FF3A2216" Width="104" Height="104" Minimum="-40" Maximum="0" Step="1"
+                                                        ScaleColor="#FFE4E0D2" ShowValueArc="False" Value="{Binding OscLevelDb}" Unit="dBFS" />
+                                        <TextBlock Text="LEVEL" Style="{StaticResource Legend}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                        <acc:JewelLamp Width="46" Height="46" IsLit="{Binding OscillatorLampLit}" LampColor="#FFFFA820" />
+                                        <acc:IlluminatedToggle OnLabel="OUTPUT" SwitchStyle="Lever" Margin="0,6,0,0" HorizontalAlignment="Center"
+                                                               LampColor="#FFFFA820" IsChecked="{Binding OscillatorOn}" />
+                                    </StackPanel>
+                                </Grid>
+                                <acc:BandspreadDial Width="300" Height="126" Margin="0,16,0,0" IsWrapping="False" Caption="FINE ±3 %"
+                                                    Value="{Binding OscFine}" IsBacklightEnabled="{Binding IsPowered}" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Margin="22,0,0,0">
+                            <TextBlock Text="{Binding OscReadout}" Style="{StaticResource Readout}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                            <acc:SpectrumAnalyzer Height="230" Spectrum="{Binding Spectrum}" AveragingTime="0.1" />
+                            <acc:Oscilloscope Height="230" Margin="0,12,0,0" HorizontalAlignment="Left" Trace="{Binding ScopeTrace}"
+                                              TimePerDivision="{Binding TimePerDivision}" AmplitudePerDivision="{Binding AmplitudePerDivision}"
+                                              TriggerMode="Auto" Persistence="2" />
+                            <TextBlock Style="{StaticResource Note}" Margin="0,10,0,0"
+                                       Text="Switch OUTPUT on and the oscillator becomes the engine's source (the footer selector follows). RANGE switches the dial's band; the dial's Frequency is bound two-way, so the spectrum line follows as you tune. Triangle and square are band-limited, so no aliases fold back. Scope timebase and gain follow the Displays page settings." />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Parts -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <TextBlock Text="Parts bin" Style="{StaticResource SectionTitle}" />
+                    <WrapPanel>
+                        <StackPanel Margin="0,0,30,0">
+                            <StackPanel Orientation="Horizontal">
+                                <acc:JewelLamp Width="56" Height="56" IsLit="True" Margin="4" />
+                                <acc:JewelLamp Width="56" Height="56" IsLit="True" LampColor="#FFFFA820" Margin="4" />
+                                <acc:JewelLamp Width="56" Height="56" IsLit="True" LampColor="#FF4CFF6A" BezelColor="#FFC8CCD0" Margin="4" />
+                                <acc:JewelLamp Width="56" Height="56" IsLit="True" LampColor="#FF5AB4FF" BezelColor="#FFC8CCD0" Margin="4" />
+                                <acc:JewelLamp Width="56" Height="56" IsLit="False" Margin="4" />
+                            </StackPanel>
+                            <TextBlock Text="JewelLamp · ruby, amber, green, blue (chrome bezel), unlit" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,30,0">
+                            <StackPanel Orientation="Horizontal">
+                                <acc:RotaryKnob KnobStyle="ChickenHead" Width="120" Height="120" Minimum="0" Maximum="3" Step="1" SweepAngle="120"
+                                                ScaleLabels="EXT,+INT,−INT,LINE" ShowValueArc="False" Value="1" />
+                                <acc:RotaryKnob KnobStyle="ChickenHead" KnobColor="#FF3A2216" Width="96" Height="96" Minimum="0" Maximum="100" Value="60"
+                                                ShowValueArc="False" Margin="12,0,0,0" />
+                                <acc:RotaryKnob KnobStyle="ChickenHead" KnobColor="#FFD8CCB0" Width="96" Height="96" Minimum="0" Maximum="100" Value="25"
+                                                ShowValueArc="False" Margin="12,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="Chicken heads · selector, brown and ivory bakelite" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

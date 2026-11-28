@@ -87,6 +87,8 @@
                                  IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Noise}" />
                     <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Sweep"
                                  IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Sweep}" />
+                    <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Oscillator"
+                                 IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Oscillator}" />
                     <RadioButton Style="{StaticResource Segment}" GroupName="Source" Content="Silence"
                                  IsChecked="{Binding Signal, Converter={StaticResource EnumEquals}, ConverterParameter=Silence}" />
                 </StackPanel>

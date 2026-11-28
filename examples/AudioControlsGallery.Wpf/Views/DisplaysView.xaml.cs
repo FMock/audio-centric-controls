@@ -13,10 +13,10 @@ public partial class DisplaysView : UserControl
         Loaded += (_, _) =>
         {
             if (DataContext is not GalleryViewModel vm) return;
-            vm.DisplaysActive = true;
+            vm.SetDisplayViewer(true);
             if (vm.Recording == null) vm.Capture();
         };
-        Unloaded += (_, _) => { if (DataContext is GalleryViewModel vm) vm.DisplaysActive = false; };
+        Unloaded += (_, _) => { if (DataContext is GalleryViewModel vm) vm.SetDisplayViewer(false); };
     }
 
     private void OnArm(object sender, RoutedEventArgs e) => Scope.Arm();
