@@ -18,6 +18,7 @@ public partial class MainWindow : Window
         new("Overview", "Console strip", () => new OverviewView()),
         new("Meters", "VU · Peak · RMS · LED", () => new MetersView()),
         new("Inputs", "Knobs · Faders · Switches", () => new InputsView()),
+        new("Displays", "Oscilloscope · Waveform", () => new DisplaysView()),
         new("Scaling", "Vector rendering at any size", () => new ScalingView()),
     };
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows.Media;
 using AudioCentric.Controls.Dynamics;
 using AudioCentric.Controls.Measurements;
+using AudioCentric.Controls.Plotting;
 using AudioCentric.Controls.Wpf.Controls;
 using AudioControlsGallery.Simulation;
 
@@ -136,6 +137,9 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
             CorrelationText = double.IsNaN(Correlation) ? "---" : Correlation.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture);
             _readoutPeakL = _readoutPeakR = double.NegativeInfinity;
         }
+
+        if (ScopeActive) UpdateScope();
+        if (IsPlaying) AdvancePlayback(dt);
     }
 
     private static string Format(double db, string unit, double floor) =>
@@ -176,6 +180,123 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
 
     private FaceOption _face = FaceOptions[0];
     public FaceOption Face { get => _face; set => Set(ref _face, value); }
+
+    // ------------------------------------------------------------------ oscilloscope (Displays page)
+
+    public static double[] TimeSteps { get; } = Steps125.Range(0.0001, 0.05);
+    public static double[] AmplitudeSteps { get; } = Steps125.Range(0.01, 1);
+
+    /// <summary>Set by the Displays page while it is visible, so history is copied only when someone is looking.</summary>
+    public bool ScopeActive { get; set; }
+
+    private double _timeIndex = Array.IndexOf(TimeSteps, 0.001);
+    public double TimeIndex
+    {
+        get => _timeIndex;
+        set { if (Set(ref _timeIndex, value)) { OnPropertyChanged(nameof(TimePerDivision)); OnPropertyChanged(nameof(TimePerDivisionText)); } }
+    }
+    public double TimePerDivision => TimeSteps[Math.Clamp((int)Math.Round(TimeIndex), 0, TimeSteps.Length - 1)];
+    public string TimePerDivisionText => Steps125.FormatSeconds(TimePerDivision) + "/div";
+
+    private double _amplitudeIndex = Array.IndexOf(AmplitudeSteps, 0.1);
+    public double AmplitudeIndex
+    {
+        get => _amplitudeIndex;
+        set { if (Set(ref _amplitudeIndex, value)) { OnPropertyChanged(nameof(AmplitudePerDivision)); OnPropertyChanged(nameof(AmplitudePerDivisionText)); } }
+    }
+    public double AmplitudePerDivision => AmplitudeSteps[Math.Clamp((int)Math.Round(AmplitudeIndex), 0, AmplitudeSteps.Length - 1)];
+    public string AmplitudePerDivisionText => AmplitudePerDivision.ToString("0.###", CultureInfo.InvariantCulture) + " FS/div";
+
+    private double _triggerLevel;
+    public double TriggerLevel { get => _triggerLevel; set { if (Set(ref _triggerLevel, value)) OnPropertyChanged(nameof(TriggerLevelText)); } }
+    public string TriggerLevelText => TriggerLevel.ToString("+0.00;−0.00;0.00", CultureInfo.InvariantCulture) + " FS";
+
+    private TriggerMode _scopeMode = TriggerMode.Auto;
+    public TriggerMode ScopeMode { get => _scopeMode; set => Set(ref _scopeMode, value); }
+
+    private TriggerSlope _scopeSlope = TriggerSlope.Rising;
+    public TriggerSlope ScopeSlope { get => _scopeSlope; set => Set(ref _scopeSlope, value); }
+
+    private bool _scopeFrozen;
+    public bool ScopeFrozen { get => _scopeFrozen; set => Set(ref _scopeFrozen, value); }
+
+    private double _persistence = 3;
+    public double Persistence { get => _persistence; set => Set(ref _persistence, value); }
+
+    private bool _showChannel2 = true;
+    public bool ShowChannel2 { get => _showChannel2; set { if (Set(ref _showChannel2, value) && !value) ScopeTrace2 = null; } }
+
+    private TraceSnapshot? _scopeTrace, _scopeTrace2;
+    public TraceSnapshot? ScopeTrace { get => _scopeTrace; private set => Set(ref _scopeTrace, value); }
+    public TraceSnapshot? ScopeTrace2 { get => _scopeTrace2; private set => Set(ref _scopeTrace2, value); }
+
+    // Two buffers per channel, alternated each frame. The scope consumes a snapshot synchronously when it is set,
+    // so reusing arrays avoids allocating large buffers 60 times a second.
+    private readonly float[][] _scopeL = new float[2][];
+    private readonly float[][] _scopeR = new float[2][];
+    private int _scopeFlip;
+
+    private void UpdateScope()
+    {
+        var history = _engine.History;
+        int visible = (int)Math.Round(TimePerDivision * 10 * history.SampleRate);
+        int length = Math.Min(history.Capacity, visible * 2 + history.SampleRate / 20);
+        _scopeFlip ^= 1;
+        if (_scopeL[_scopeFlip]?.Length != length)
+        {
+            _scopeL[_scopeFlip] = new float[length];
+            _scopeR[_scopeFlip] = new float[length];
+        }
+        var l = _scopeL[_scopeFlip];
+        var r = _scopeR[_scopeFlip];
+        long start = history.CopyLatest(l, ShowChannel2 ? r : null);
+        // Channel 2 first: the scope processes both channels when channel 1 changes.
+        if (ShowChannel2) ScopeTrace2 = new TraceSnapshot(history.SampleRate, start, r);
+        ScopeTrace = new TraceSnapshot(history.SampleRate, start, l);
+    }
+
+    // ------------------------------------------------------------------ recording (Displays page)
+
+    private IWaveformSource? _recording;
+    public IWaveformSource? Recording { get => _recording; private set { if (Set(ref _recording, value)) OnPropertyChanged(nameof(RecordingText)); } }
+    public string RecordingText => Recording == null ? "No capture yet" :
+        $"{(double)Recording.Length / Recording.SampleRate:0.0} s · {Recording.ChannelCount} ch · {Recording.SampleRate / 1000.0:0.#} kHz";
+
+    public RelayCommand CaptureCommand => _captureCommand ??= new RelayCommand(_ => Capture());
+    private RelayCommand? _captureCommand;
+
+    public void Capture()
+    {
+        IsPlaying = false;
+        Recording = _engine.History.Capture(10);
+        Playhead = 0;
+        SelectionStart = SelectionEnd = double.NaN;
+    }
+
+    private double _playhead = double.NaN;
+    public double Playhead { get => _playhead; set { if (Set(ref _playhead, value)) OnPropertyChanged(nameof(PlayheadText)); } }
+    public string PlayheadText => Recording == null || double.IsNaN(Playhead) ? "" : $"▶ {Playhead / Recording.SampleRate:0.000} s";
+
+    private double _selectionStart = double.NaN, _selectionEnd = double.NaN;
+    public double SelectionStart { get => _selectionStart; set { if (Set(ref _selectionStart, value)) OnPropertyChanged(nameof(SelectionText)); } }
+    public double SelectionEnd { get => _selectionEnd; set { if (Set(ref _selectionEnd, value)) OnPropertyChanged(nameof(SelectionText)); } }
+    public string SelectionText => Recording == null || double.IsNaN(SelectionStart) || double.IsNaN(SelectionEnd) ? "No selection" :
+        $"Selection {SelectionStart / Recording.SampleRate:0.000}–{SelectionEnd / Recording.SampleRate:0.000} s ({(SelectionEnd - SelectionStart) / Recording.SampleRate * 1000:0} ms)";
+
+    private bool _isPlaying;
+    /// <summary>Moves the playhead in real time (a stand-in for a host transport; no audio is played).</summary>
+    public bool IsPlaying { get => _isPlaying; set => Set(ref _isPlaying, value); }
+
+    private void AdvancePlayback(double dt)
+    {
+        if (Recording == null) { IsPlaying = false; return; }
+        double p = double.IsNaN(Playhead) ? 0 : Playhead;
+        p += dt * Recording.SampleRate;
+        double end = double.IsNaN(SelectionEnd) ? Recording.Length : SelectionEnd;
+        double begin = double.IsNaN(SelectionStart) ? 0 : SelectionStart;
+        if (p >= end) p = begin; // loop the selection (or the whole capture)
+        Playhead = p;
+    }
 
     public void Dispose()
     {

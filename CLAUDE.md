@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Audio-Centric-Controls is an MIT-licensed library of reusable, realistic, DPI-scalable vintage audio controls (analog VU/peak/RMS meters, LED bar meters, rotary knobs, console faders, illuminated switches; planned: waveform display, oscilloscope, FFT spectrum analyzer, frequency-response graph, stereo correlation meter). WPF is the first renderer. The design spec is `docs/Audio-Centric-Controls-Public.docx` (per-control formulas, display defaults, API properties, verification lists). Read the relevant section before implementing a control. From the shell: unzip `word/document.xml` and strip tags. The images in the docx (`word/media/image1-3.png`) are the visual targets for the VU, Peak and RMS meters. `docs/very-basic-galley-concept.jpg` only sketches the gallery layout; its meter scales are wrong.
+Audio-Centric-Controls is an MIT-licensed library of reusable, realistic, DPI-scalable vintage audio controls (analog VU/peak/RMS meters, LED bar meters, rotary knobs, console faders, illuminated switches, waveform display, oscilloscope; planned: FFT spectrum analyzer, frequency-response graph, stereo correlation meter). WPF is the first renderer. The design spec is `docs/Audio-Centric-Controls-Public.docx` (per-control formulas, display defaults, API properties, verification lists). Read the relevant section before implementing a control. From the shell: unzip `word/document.xml` and strip tags. The images in the docx (`word/media/image1-3.png`) are the visual targets for the VU, Peak and RMS meters. `docs/very-basic-galley-concept.jpg` only sketches the gallery layout; its meter scales are wrong.
 
 ## Build and test
 
@@ -26,10 +26,10 @@ bin\x64\Debug\AudioControlsGallery.Wpf.exe --screenshots <dir>   # saves a PNG p
   - `Scales/`: `IValueMapping` (Linear, Log, Amplitude for VU, PiecewiseLinear), `FaderTaper`, `ArcGeometry`, `ScaleDefinition`, `LedScaleDefinition`, `ScalePresets`
   - `Dynamics/`: display-only `NeedleBallistics`, `PeakHoldTracker`, `DecayFollower`, `OverloadLatch`
   - `Input/`: `ParameterModel`, `ToggleStateModel`
-  - `Plotting/`: `MinMaxBucketer`
+  - `Plotting/`: `MinMaxBucketer`, `MinMaxPyramid`, `IWaveformSource`/`InMemoryWaveformSource`, `ScopeTrigger` (Free/Auto/Normal/Single, hysteresis, holdoff), `Steps125`
   - `Measurements/`: `Measurement`, `Decibels`, snapshot records
 - `src/AudioCentric.Controls.Wpf` (controls in `...Wpf.Controls`, XAML namespace `https://github.com/FMock/audio-centric-controls`, prefix `acc`) holds the renderers.
-- `examples/AudioControlsGallery.Wpf` is the live gallery. `Simulation/` plays the **host**: a background thread synthesizes 48 kHz stereo and computes calibrated VU, peak, RMS and correlation. `GalleryViewModel` pulls results at frame rate and binds them to the controls.
+- `examples/AudioControlsGallery.Wpf` is the live gallery. `Simulation/` plays the **host**: a background thread synthesizes 48 kHz stereo and computes calibrated VU, peak, RMS and correlation, and keeps a lock-free ~21 s history ring (`SimulatedWaveformSource`) for the oscilloscope and recording captures. `GalleryViewModel` pulls results at frame rate and binds them to the controls.
 
 ### Boundaries (from the design doc)
 
@@ -52,5 +52,5 @@ Add every new control to the gallery as soon as it works. Register a page in `Ma
 
 ## Roadmap status
 
-Done: scaffold, Core foundations, AnalogMeter + overload lamp, LedBarMeter, RotaryKnob, ConsoleFader, IlluminatedToggle, gallery (Overview / Meters / Inputs / Scaling).
-Next: WaveformDisplay + Oscilloscope, then SpectrumAnalyzer, FrequencyResponseGraph, CorrelationMeter (a "Displays" gallery page), then docs and NuGet packaging (`dotnet pack` for Core and Wpf).
+Done: scaffold, Core foundations, AnalogMeter + overload lamp, LedBarMeter, RotaryKnob, ConsoleFader, IlluminatedToggle, WaveformDisplay, Oscilloscope, gallery (Overview / Meters / Inputs / Displays / Scaling).
+Next: SpectrumAnalyzer, FrequencyResponseGraph, CorrelationMeter (add to the Displays and Meters pages), then docs and NuGet packaging (`dotnet pack` for Core and Wpf).
