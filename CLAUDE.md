@@ -18,6 +18,8 @@ bin\x64\Debug\AudioControlsGallery.Wpf.exe                  # live gallery
 bin\x64\Debug\AudioControlsGallery.Wpf.exe --screenshots <dir>   # saves a PNG per gallery page (+ -full.png of scrolling pages), then exits
 ```
 
+Packaging: `dotnet pack Audio-Centric-Controls.sln -c Release --no-build` writes Core and Wpf packages to `bin\x64\Release\packages\`. `scripts\verify-packages.ps1` builds, tests, packs, inspects the packages, then builds `examples\PackageConsumer.Wpf` from them and runs it with `--smoke`. That app is deliberately **not** in the solution and does not import the repo's `Directory.Build.props`: it is the "outside consumer" check, with its own `nuget.config` and a private restore folder. The library assemblies are `PlatformTarget=AnyCPU` (pure IL, usable by AnyCPU and ARM64 apps), but they are still built by the x64 solution configurations into `bin\x64\<Configuration>\`. The version is the single `<Version>` in `Directory.Build.props`.
+
 `Directory.Build.props` sets the TFM (`net8.0-windows`; Core overrides it to plain `net8.0`), forces Platform=x64 when it is empty or AnyCPU, and sets OutputPath. WPF tests save renders of the controls when `ACC_RENDER_DIR` is set. Use that, or `--screenshots`, to check artwork visually after rendering changes.
 
 ## Architecture
@@ -30,6 +32,7 @@ bin\x64\Debug\AudioControlsGallery.Wpf.exe --screenshots <dir>   # saves a PNG p
   - `Input/EqBand`: band parameters plus `EqBandChangeRequest`, which the response graph publishes
   - `Measurements/`: `Measurement`, `Decibels`, snapshot records
 - `src/AudioCentric.Controls.Wpf` (controls in `...Wpf.Controls`, XAML namespace `https://github.com/FMock/audio-centric-controls`, prefix `acc`) holds the renderers.
+- `docs/` has the user guides (`getting-started.md`, `host-integration.md`, `controls.md`, `packaging.md`). Update `controls.md` when a control's public properties change.
 - `examples/AudioControlsGallery.Wpf` is the live gallery. `Simulation/` plays the **host**: a background thread synthesizes 48 kHz stereo and computes calibrated VU, peak, RMS and correlation, and keeps a lock-free ~21 s history ring (`SimulatedWaveformSource`) for the oscilloscope and recording captures. It also runs the FFT provider (`SimulatedSpectrumSource`, `SpectrumAnalysis`), a real biquad EQ cascade (`Biquad`, `SimulatedFrequencyResponseSource`: it constrains band requests and computes theoretical and measured H₁ responses), polarity flip and mono check. Mono sums only the monitor path, after the correlation meter, as on a console. `GalleryViewModel` pulls results at frame rate and binds them to the controls. The provider files in `Simulation/` that are plain C# are compiled into `Core.Tests` as linked files and tested there against the spec's verification lists (`GalleryProviderTests`).
 
 ### Boundaries (from the design doc)
@@ -54,5 +57,4 @@ Add every new control to the gallery as soon as it works. Register a page in `Ma
 
 ## Roadmap status
 
-Done: scaffold, Core foundations, AnalogMeter + overload lamp, LedBarMeter, RotaryKnob, ConsoleFader, IlluminatedToggle, WaveformDisplay, Oscilloscope, SpectrumAnalyzer, FrequencyResponseGraph, CorrelationMeter, gallery (Overview / Meters / Inputs / Displays / Scaling).
-Next: docs (binding and command examples in `docs/`) and NuGet packaging (`dotnet pack` for Core and Wpf), then a fresh-clone build check.
+All seven milestones of the original plan are done: Core, the ten controls, the gallery, the docs, the NuGet packages and package-consumer verification. Possible next steps: CI (build, test and `scripts/verify-packages.ps1` on GitHub Actions), publishing 0.1.0, and more renderers or controls.

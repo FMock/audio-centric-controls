@@ -18,14 +18,32 @@ An open-source library of reusable audio controls and visualization components, 
 
 All artwork is procedural vector graphics. It stays sharp at any size and DPI.
 
+## Install
+
+```
+dotnet add package AudioCentric.Controls.Wpf
+```
+
+Targets `net8.0-windows`. Then start with [docs/getting-started.md](docs/getting-started.md).
+
+## Documentation
+
+- [Getting started](docs/getting-started.md): install, XAML namespace, first controls, sizing
+- [Host integration](docs/host-integration.md): units, silence vs invalid, threading, peak aggregation, snapshots, requests and acknowledgement
+- [Control reference](docs/controls.md): every control with its key properties and a binding example
+- [Packaging and verification](docs/packaging.md): building, checking and publishing the NuGet packages
+
 ## Repository layout
 
 ```
-src/AudioCentric.Controls.Core   framework-neutral mappings, scales, display dynamics, state models (no WPF)
-src/AudioCentric.Controls.Wpf    WPF renderer (the controls)
-tests/                           xUnit tests for Core and WPF
+src/AudioCentric.Controls.Core     framework-neutral mappings, scales, display dynamics, state models (no WPF)
+src/AudioCentric.Controls.Wpf      WPF renderer (the controls)
+tests/                             xUnit tests for Core and WPF
 examples/AudioControlsGallery.Wpf  live gallery driven by a simulated 48 kHz signal; no audio device needed
-docs/                            design reference
+examples/PackageConsumer.Wpf       minimal app that uses the controls only through the NuGet packages
+scripts/verify-packages.ps1        build, test, pack, then build and smoke-test the package consumer
+docs/                              guides and the design reference
+assets/                            package icon
 ```
 
 ## Build
@@ -36,6 +54,8 @@ Requires Windows and the .NET 8 (or newer) SDK, or Visual Studio 2022. The only 
 dotnet build Audio-Centric-Controls.sln -c Release
 dotnet test  Audio-Centric-Controls.sln
 bin\x64\Release\AudioControlsGallery.Wpf.exe
+dotnet pack  Audio-Centric-Controls.sln -c Release --no-build       # → bin\x64\Release\packages\
+powershell -ExecutionPolicy Bypass -File scripts\verify-packages.ps1  # full package check
 ```
 
 ## Using a control
@@ -47,7 +67,7 @@ bin\x64\Release\AudioControlsGallery.Wpf.exe
 </Window>
 ```
 
-The controls display measurements your application supplies (VU, dBFS, dBTP) and publish parameter targets back. Audio I/O, analysis and parameter smoothing stay in your application.
+The controls display measurements your application supplies (VU, dBFS, dBTP, correlation, spectra, responses) and publish parameter requests back. Audio I/O, analysis and parameter smoothing stay in your application; see [docs/host-integration.md](docs/host-integration.md).
 
 ## License and Attribution
 

@@ -6,9 +6,16 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>AudioCentric.Controls.Core</PackageId>
+    <IsPackable>true</IsPackable>
+    <!-- Pure IL: mark the assembly AnyCPU so AnyCPU and ARM64 apps can consume the package. The solution still builds it as x64 into bin\x64\<Configuration>. -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <Description>Framework-neutral scale mappings, display dynamics, state models and data contracts for Audio-Centric-Controls.</Description>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="AudioCentric.Controls.Core.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 </Project>

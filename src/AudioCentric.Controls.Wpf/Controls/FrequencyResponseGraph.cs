@@ -329,22 +329,35 @@ public class FrequencyResponseGraph : FrameworkElement
             dc.DrawText(ft, new Point(_plot.Left + (_plot.Width - ft.Width) / 2, _plot.Top + _plot.Height * 0.3));
         }
 
-        // Legend
+        DrawLegend(dc, fs, ppd);
+    }
+
+    private IEnumerable<(string Text, Color Color, Pen Pen)> LegendItems()
+    {
+        foreach (var (snap, color) in new[] { (Response, TraceColor), (OverlayResponse, OverlayColor) })
+            if (snap != null && snap.IsValid)
+                yield return (snap.IsMeasured ? "MEASURED" : "THEORETICAL", color, LinePen(color, snap.IsMeasured, 1.8));
+        if (ShowPhase) yield return ("PHASE", PhaseColor, VintageArt.FrozenPen(VintageArt.Frozen(PhaseColor), 1.4));
+    }
+
+    /// <summary>Right edge of the legend in the header, so the band readout can avoid it.</summary>
+    private double LegendRight(double fs, double ppd)
+    {
+        double x = _plot.Left;
+        foreach (var item in LegendItems())
+            x += fs * 2.4 + VintageArt.Text(item.Text, fs, Brushes.White, FontWeights.SemiBold, ppd).Width + fs * 1.4;
+        return x;
+    }
+
+    private void DrawLegend(DrawingContext dc, double fs, double ppd)
+    {
         double x = _plot.Left, y = _screen.Top + (_plot.Top - _screen.Top) / 2;
-        foreach (var (snap, color) in new[] { (main, TraceColor), (overlay, OverlayColor) })
+        foreach (var (text, color, pen) in LegendItems())
         {
-            if (snap == null || !snap.IsValid) continue;
-            var pen = LinePen(color, snap.IsMeasured, 1.8);
             dc.DrawLine(pen, new Point(x, y), new Point(x + fs * 2, y));
-            var ft = VintageArt.Text(snap.IsMeasured ? "MEASURED" : "THEORETICAL", fs, VintageArt.Frozen(color), FontWeights.SemiBold, ppd);
+            var ft = VintageArt.Text(text, fs, VintageArt.Frozen(color), FontWeights.SemiBold, ppd);
             dc.DrawText(ft, new Point(x + fs * 2.4, y - ft.Height / 2));
             x += fs * 2.4 + ft.Width + fs * 1.4;
-        }
-        if (ShowPhase)
-        {
-            dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(PhaseColor), 1.4), new Point(x, y), new Point(x + fs * 2, y));
-            var ft = VintageArt.Text("PHASE", fs, VintageArt.Frozen(PhaseColor), FontWeights.SemiBold, ppd);
-            dc.DrawText(ft, new Point(x + fs * 2.4, y - ft.Height / 2));
         }
     }
 
@@ -503,7 +516,10 @@ public class FrequencyResponseGraph : FrameworkElement
                 + (b.HasGain ? $"   {b.GainDb.ToString("+0.0;−0.0;0.0", ci)} dB" : "")
                 + $"   Q {b.Q.ToString("0.00", ci)}" + (b.IsEnabled ? "" : "   BYPASSED");
             var ft = VintageArt.Text(text, fs, VintageArt.Frozen(BandColor(selected)), FontWeights.SemiBold, ppd);
-            dc.DrawText(ft, new Point(_plot.Right - ft.Width, _screen.Top + (_plot.Top - _screen.Top - ft.Height) / 2));
+            if (_plot.Right - ft.Width > LegendRight(fs, ppd))
+                dc.DrawText(ft, new Point(_plot.Right - ft.Width, _screen.Top + (_plot.Top - _screen.Top - ft.Height) / 2));
+            else // not enough room beside the legend: show it in a box inside the plot
+                PlotArt.DrawReadoutBox(dc, ft, new Point(_plot.Right - ft.Width - 16, _plot.Top + 6), _plot);
         }
     }
 

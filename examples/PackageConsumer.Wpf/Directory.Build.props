@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Deliberately does NOT import the repository's Directory.Build.props: this app checks that the NuGet packages work
+    on their own, the way an outside application would use them. It builds as x64 into bin\x64\<Configuration>\PackageConsumer\
+    and restores into a private folder, so a freshly packed 0.1.0 is never masked by a stale copy in the global NuGet cache.
+  -->
+  <PropertyGroup>
+    <Platform Condition="'$(Platform)' == '' Or '$(Platform)' == 'AnyCPU' Or '$(Platform)' == 'Any CPU'">x64</Platform>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <OutputPath>$(MSBuildThisFileDirectory)..\..\bin\$(Platform)\$(Configuration)\PackageConsumer\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory)obj\packages\</RestorePackagesPath>
+  </PropertyGroup>
+</Project>

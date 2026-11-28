@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A small host application that uses Audio-Centric-Controls only through its NuGet package. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AccPackageVersion Condition="'$(AccPackageVersion)' == ''">0.1.0</AccPackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AudioCentric.Controls.Wpf" Version="$(AccPackageVersion)" />
+  </ItemGroup>
+</Project>
