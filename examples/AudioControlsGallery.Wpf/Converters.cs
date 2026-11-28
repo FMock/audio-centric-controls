@@ -4,14 +4,16 @@ using System.Windows.Data;
 
 namespace AudioControlsGallery;
 
-/// <summary>Binds a RadioButton's IsChecked to an enum property: ConverterParameter is the enum member name.</summary>
+/// <summary>Binds a RadioButton's IsChecked to an enum or number property: ConverterParameter is the member name or invariant number.</summary>
 public sealed class EnumEqualsConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value?.ToString() == parameter?.ToString();
+        System.Convert.ToString(value, CultureInfo.InvariantCulture) == parameter?.ToString();
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is true && parameter is string name ? Enum.Parse(targetType, name) : Binding.DoNothing;
+        value is true && parameter is string name
+            ? targetType.IsEnum ? Enum.Parse(targetType, name) : System.Convert.ChangeType(name, targetType, CultureInfo.InvariantCulture)
+            : Binding.DoNothing;
 }
 
 /// <summary>True when the value equals ConverterParameter (by reference or Equals); used for face colour pickers.</summary>

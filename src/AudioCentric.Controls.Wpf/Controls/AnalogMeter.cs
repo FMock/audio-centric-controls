@@ -566,6 +566,7 @@ public class AnalogMeter : FrameworkElement, IRenderTickable
     {
         ZoneKind.Danger => RedInkColor,
         ZoneKind.Warning => AmberInkColor,
+        ZoneKind.Good => Color.FromRgb(0x0A, 0x52, 0x16),
         _ => InkColor,
     };
 

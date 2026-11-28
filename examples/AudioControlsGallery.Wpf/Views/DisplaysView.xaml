@@ -77,6 +77,89 @@
                 </Grid>
             </Border>
 
+            <!-- Spectrum analyzer -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="300" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="FFT spectrum analyzer" Style="{StaticResource SectionTitle}" />
+                        <acc:SpectrumAnalyzer Height="300" Spectrum="{Binding Spectrum}" DisplayMode="{Binding SpectrumMode}"
+                                              BandsPerOctave="{Binding BandsPerOctave}" BandAggregation="{Binding BandAggregation}"
+                                              AveragingTime="{Binding SpectrumAveraging}" IsPeakHoldEnabled="{Binding SpectrumPeakHold}" />
+                        <TextBlock Style="{StaticResource Note}" Margin="0,10,0,0"
+                                   Text="Mid signal (L+R)/2 analysed by the host: Hann window, 75 % overlap, peak-tone calibration (a full-scale sine reads 0 dBFS). The control reduces bins to pixel columns or fractional-octave bands, averages, and holds peaks. Try 'Ref tone' (one line at −18 dBFS) or 'Sweep'. Hover for a readout." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="22,34,0,0">
+                        <TextBlock Text="Display" Style="{StaticResource Caption}" HorizontalAlignment="Left" Margin="0,0,0,6" />
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Segment}" GroupName="SpecMode" Content="Trace"
+                                         IsChecked="{Binding SpectrumMode, Converter={StaticResource EnumEquals}, ConverterParameter=Line}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="SpecMode" Content="Bars"
+                                         IsChecked="{Binding SpectrumMode, Converter={StaticResource EnumEquals}, ConverterParameter=Bars}" />
+                        </WrapPanel>
+                        <TextBlock Text="Bars per octave · aggregation" Style="{StaticResource Caption}" HorizontalAlignment="Left" Margin="0,12,0,6" />
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Bpo" Content="1/1"
+                                         IsChecked="{Binding BandsPerOctave, Converter={StaticResource EnumEquals}, ConverterParameter=1}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Bpo" Content="1/3"
+                                         IsChecked="{Binding BandsPerOctave, Converter={StaticResource EnumEquals}, ConverterParameter=3}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Bpo" Content="1/6"
+                                         IsChecked="{Binding BandsPerOctave, Converter={StaticResource EnumEquals}, ConverterParameter=6}" />
+                        </WrapPanel>
+                        <WrapPanel Margin="0,4,0,0">
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Agg" Content="Max"
+                                         IsChecked="{Binding BandAggregation, Converter={StaticResource EnumEquals}, ConverterParameter=Maximum}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Agg" Content="Power sum"
+                                         IsChecked="{Binding BandAggregation, Converter={StaticResource EnumEquals}, ConverterParameter=PowerSum}" />
+                        </WrapPanel>
+                        <TextBlock Text="FFT size (provider)" Style="{StaticResource Caption}" HorizontalAlignment="Left" Margin="0,12,0,6" />
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Fft" Content="1k"
+                                         IsChecked="{Binding FftSize, Converter={StaticResource EnumEquals}, ConverterParameter=1024}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Fft" Content="4k"
+                                         IsChecked="{Binding FftSize, Converter={StaticResource EnumEquals}, ConverterParameter=4096}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Fft" Content="16k"
+                                         IsChecked="{Binding FftSize, Converter={StaticResource EnumEquals}, ConverterParameter=16384}" />
+                        </WrapPanel>
+                        <TextBlock Text="Display averaging" Style="{StaticResource Caption}" HorizontalAlignment="Left" Margin="0,12,0,6" />
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Avg" Content="Off"
+                                         IsChecked="{Binding SpectrumAveraging, Converter={StaticResource EnumEquals}, ConverterParameter=0}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Avg" Content="Fast"
+                                         IsChecked="{Binding SpectrumAveraging, Converter={StaticResource EnumEquals}, ConverterParameter=0.25}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Avg" Content="Slow"
+                                         IsChecked="{Binding SpectrumAveraging, Converter={StaticResource EnumEquals}, ConverterParameter=1}" />
+                        </WrapPanel>
+                        <acc:IlluminatedToggle OnLabel="Peak hold" LampColor="#FFFFC03A" IsChecked="{Binding SpectrumPeakHold}"
+                                               HorizontalAlignment="Left" Margin="0,12,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Frequency response / EQ -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock Text="Frequency response · 5-band EQ" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <acc:IlluminatedToggle OnLabel="EQ in" LampColor="#FF6CF24A" IsChecked="{Binding EqEnabled}" Margin="0,0,8,0" />
+                            <acc:IlluminatedToggle OnLabel="Measured" LampColor="#FF7CC8F0" IsChecked="{Binding ShowMeasured}" Margin="0,0,8,0" />
+                            <acc:IlluminatedToggle OnLabel="Phase" LampColor="#FFE8A23A" IsChecked="{Binding ShowPhase}" Margin="0,0,8,0" />
+                            <acc:IlluminatedToggle OnLabel="Reset EQ" Mode="Momentary" LampColor="#FFFFB01E" Command="{Binding ResetEqCommand}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <acc:FrequencyResponseGraph Height="320" MinimumDb="-18" MaximumDb="18" Response="{Binding EqResponse}" OverlayResponse="{Binding EqMeasured}"
+                                                Bands="{Binding EqBands}" SelectedBandIndex="{Binding SelectedBand}"
+                                                BandChangeCommand="{Binding BandChangeCommand}" ShowPhase="{Binding ShowPhase}" />
+                    <TextBlock Style="{StaticResource Note}" Margin="0,8,0,0"
+                               Text="The EQ really processes the simulated signal (watch the spectrum above). Drag a handle for frequency and gain, wheel for Q, double-click to zero the gain, right-click to bypass the band; keys 1–5 select, arrows nudge, PgUp/PgDn change Q. The graph only sends requests: the host clamps them (±18 dB, 20 Hz–20 kHz), recomputes the coefficients, and sends back the bands and the response. The dashed curve is measured from white noise through the same filters (H₁ = S_yx / S_xx); bins with low coherence are left out." />
+                </StackPanel>
+            </Border>
+
             <!-- Waveform -->
             <Border Style="{StaticResource ConsolePanel}">
                 <StackPanel>

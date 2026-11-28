@@ -12,7 +12,9 @@ An open-source library of reusable audio controls and visualization components, 
 | `IlluminatedToggle`: push-button, square cap and lever styles; momentary/latching; pending/fault states | ✅ |
 | `WaveformDisplay`: peak-preserving min/max overview, sample-level zoom, ruler, playhead, selection, stereo lanes | ✅ |
 | `Oscilloscope`: CRT look, 1-2-5 timebase, Free/Auto/Normal/Single trigger with level, slope and holdoff, freeze, persistence, 2 channels | ✅ |
-| FFT spectrum analyzer, frequency-response graph, stereo correlation meter | planned |
+| `SpectrumAnalyzer`: log/linear axis to Nyquist, trace or fractional-octave bars (max or calibrated power sum), display averaging, peak hold, DC readout, cursor readout | ✅ |
+| `FrequencyResponseGraph`: gain and phase, theoretical vs measured curves, −3 dB markers, draggable EQ band handles that publish change requests | ✅ |
+| `CorrelationMeter`: −1…+1 edgewise meter, zone-coloured bar, explicit NO SIGNAL state, convention and window caption, MONO command button | ✅ |
 
 All artwork is procedural vector graphics. It stays sharp at any size and DPI.
 
