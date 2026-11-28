@@ -14,6 +14,10 @@ Realistic, DPI-independent vintage audio controls for WPF. All artwork is proced
 | `SpectrumAnalyzer` | FFT display: log axis, trace or fractional-octave bars, averaging, peak hold |
 | `FrequencyResponseGraph` | Gain and phase, theoretical vs measured curves, draggable EQ band handles |
 | `CorrelationMeter` | −1…+1 stereo phase correlation with an explicit no-signal state |
+| `TuningDial`, `BandspreadDial` | Vintage receiver tuning dial (rotating band scales) and bandspread wheel |
+| `JewelLamp` | Faceted jewel pilot light with bulb warm-up |
+
+`RotaryKnob` also comes as a vintage chicken-head knob (`KnobStyle="ChickenHead"`), and `ScaleLabels` turns it into a labelled rotary selector.
 
 ```xml
 <Window xmlns:acc="https://github.com/FMock/audio-centric-controls">

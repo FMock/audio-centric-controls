@@ -27,6 +27,7 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
         _engine.SetEqualizer(_eq.Coefficients);
         _eqBands = _eq.Bands;
         RefreshResponse(); // theoretical now, measured shortly after on a worker thread
+        ApplyOscillator();
         ApplyGain();
         CompositionTarget.Rendering += OnFrame;
     }
@@ -37,16 +38,25 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
     public bool IsPowered
     {
         get => _isPowered;
-        set { if (Set(ref _isPowered, value)) { ApplyGain(); OnPropertyChanged(nameof(PowerText)); } }
+        set { if (Set(ref _isPowered, value)) { ApplyGain(); OnPropertyChanged(nameof(PowerText)); OnPropertyChanged(nameof(OscillatorLampLit)); } }
     }
 
     public string PowerText => IsPowered ? "Power on" : "Power off";
 
     private SignalKind _signal = SignalKind.Program;
+    private SignalKind _signalBeforeOscillator = SignalKind.Program;
     public SignalKind Signal
     {
         get => _signal;
-        set { if (Set(ref _signal, value)) _engine.Signal = value; }
+        set
+        {
+            var old = _signal;
+            if (!Set(ref _signal, value)) return;
+            _engine.Signal = value;
+            if (value == SignalKind.Oscillator) _signalBeforeOscillator = old;
+            OnPropertyChanged(nameof(OscillatorOn));
+            OnPropertyChanged(nameof(OscillatorLampLit));
+        }
     }
 
     private double _inputTrimDb;
@@ -186,6 +196,108 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
         set { if (Set(ref _invertRight, value)) _engine.InvertRight = value; }
     }
 
+    // ------------------------------------------------------------------ vintage receiver (Vintage page)
+
+    private int _radioBand = 2;
+    /// <summary>Band selected on the tuning dial (0-based). The chicken-head band switch binds <see cref="RadioBandKnob"/>.</summary>
+    public int RadioBand
+    {
+        get => _radioBand;
+        set { if (Set(ref _radioBand, value)) { OnPropertyChanged(nameof(RadioBandKnob)); OnPropertyChanged(nameof(RadioReadout)); } }
+    }
+
+    /// <summary>The band switch's knob position (a double, as knobs publish), mapped onto <see cref="RadioBand"/>.</summary>
+    public double RadioBandKnob { get => RadioBand; set => RadioBand = (int)Math.Round(value); }
+
+    private double _radioPosition = 0.3;
+    /// <summary>Main dial position 0…1; the TUNING knob and the dial both bind it.</summary>
+    public double RadioPosition { get => _radioPosition; set { if (Set(ref _radioPosition, value)) OnPropertyChanged(nameof(RadioReadout)); } }
+
+    private double _radioFrequency = double.NaN;
+    public double RadioFrequency { get => _radioFrequency; set { if (Set(ref _radioFrequency, value)) OnPropertyChanged(nameof(RadioReadout)); } }
+
+    private double _radioBandspread = 0;
+    public double RadioBandspread { get => _radioBandspread; set { if (Set(ref _radioBandspread, value)) OnPropertyChanged(nameof(RadioReadout)); } }
+
+    private double _radioSensitivity = 7, _radioVolume = 5, _radioTone = 1;
+    public double RadioSensitivity { get => _radioSensitivity; set => Set(ref _radioSensitivity, value); }
+    public double RadioVolume { get => _radioVolume; set => Set(ref _radioVolume, value); }
+    public double RadioTone { get => _radioTone; set => Set(ref _radioTone, value); }
+
+    /// <summary>Main dial frequency plus the bandspread's fine offset (±1 % over its 0–100 travel, centred on 50).</summary>
+    public string RadioReadout
+    {
+        get
+        {
+            if (double.IsNaN(RadioFrequency)) return "";
+            double spread = RadioBandspread <= 50 ? RadioBandspread : RadioBandspread - 100; // the wheel is endless: 95 reads as −5
+            double f = RadioFrequency * (1 + spread * 0.0002);
+            return $"Band {RadioBand + 1}  ·  {f.ToString("0.000", CultureInfo.InvariantCulture)} MHz";
+        }
+    }
+
+    // ------------------------------------------------------------------ audio oscillator (Vintage page)
+
+    private int _oscRange = 1;
+    public int OscRange
+    {
+        get => _oscRange;
+        set { if (Set(ref _oscRange, value)) OnPropertyChanged(nameof(OscRangeKnob)); }
+    }
+
+    public double OscRangeKnob { get => OscRange; set => OscRange = (int)Math.Round(value); }
+
+    private double _oscDialFrequency = 1000;
+    /// <summary>Frequency read off the oscillator's dial (two-way with the TuningDial's Frequency).</summary>
+    public double OscDialFrequency { get => _oscDialFrequency; set { if (Set(ref _oscDialFrequency, value)) ApplyOscillator(); } }
+
+    private double _oscFine = 50;
+    /// <summary>Fine tuning on the bandspread dial: 0–100, ±3 % around the centre (50).</summary>
+    public double OscFine { get => _oscFine; set { if (Set(ref _oscFine, value)) ApplyOscillator(); } }
+
+    private double _oscWaveform;
+    public double OscWaveform { get => _oscWaveform; set { if (Set(ref _oscWaveform, value)) ApplyOscillator(); } }
+
+    private double _oscLevelDb = -12;
+    public double OscLevelDb { get => _oscLevelDb; set { if (Set(ref _oscLevelDb, value)) ApplyOscillator(); } }
+
+    /// <summary>Oscillator output on: it becomes the engine's source. Off restores the previous source.</summary>
+    public bool OscillatorOn
+    {
+        get => Signal == SignalKind.Oscillator;
+        set
+        {
+            if (value == OscillatorOn) return;
+            ApplyOscillator();
+            Signal = value ? SignalKind.Oscillator : _signalBeforeOscillator;
+        }
+    }
+
+    public bool OscillatorLampLit => OscillatorOn && IsPowered;
+
+    public double OscFrequency => double.IsNaN(OscDialFrequency) ? double.NaN : OscDialFrequency * (1 + (OscFine - 50) / 50 * 0.03);
+
+    public string OscReadout
+    {
+        get
+        {
+            double f = OscFrequency;
+            if (double.IsNaN(f)) return "";
+            string wave = ((OscillatorWaveform)(int)Math.Round(OscWaveform)).ToString().ToLowerInvariant();
+            string hz = f >= 1000 ? (f / 1000).ToString("0.000", CultureInfo.InvariantCulture) + " kHz" : f.ToString("0.0", CultureInfo.InvariantCulture) + " Hz";
+            return $"{hz}  ·  {wave}  ·  {OscLevelDb.ToString("0", CultureInfo.InvariantCulture)} dBFS peak";
+        }
+    }
+
+    private void ApplyOscillator()
+    {
+        if (!double.IsNaN(OscFrequency)) _engine.OscillatorFrequency = OscFrequency;
+        _engine.OscillatorWaveform = (OscillatorWaveform)Math.Clamp((int)Math.Round(OscWaveform), 0, 2);
+        _engine.OscillatorLevelDb = OscLevelDb;
+        OnPropertyChanged(nameof(OscFrequency));
+        OnPropertyChanged(nameof(OscReadout));
+    }
+
     // ------------------------------------------------------------------ appearance options (Meters page)
 
     private NeedleDynamicsMode _needleDynamics = NeedleDynamicsMode.Mechanical;
@@ -222,8 +334,13 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
     public static double[] TimeSteps { get; } = Steps125.Range(0.0001, 0.05);
     public static double[] AmplitudeSteps { get; } = Steps125.Range(0.01, 1);
 
-    /// <summary>Set by the Displays page while it is visible, so history and spectra are copied only when someone is looking.</summary>
-    public bool DisplaysActive { get; set; }
+    private int _displayViewers;
+
+    /// <summary>True while a page showing the scope or spectrum is visible, so history and spectra are copied only when someone is looking.</summary>
+    public bool DisplaysActive => _displayViewers > 0;
+
+    /// <summary>Pages call this on Loaded / Unloaded. A count, because navigation can load the next page before unloading the last.</summary>
+    public void SetDisplayViewer(bool visible) => _displayViewers = Math.Max(0, _displayViewers + (visible ? 1 : -1));
 
     private double _timeIndex = Array.IndexOf(TimeSteps, 0.001);
     public double TimeIndex

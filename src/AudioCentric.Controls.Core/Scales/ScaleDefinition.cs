@@ -13,8 +13,8 @@ public enum ZoneKind
 /// <summary>A tick at a value in engineering units, optionally labelled.</summary>
 public readonly record struct ScaleTick(double Value, string? Label = null);
 
-/// <summary>A highlighted band of the scale (e.g. the red 0..+3 VU region).</summary>
-public readonly record struct ScaleZone(double Start, double End, ZoneKind Kind);
+/// <summary>A highlighted band of the scale (e.g. the red 0..+3 VU region, or a labelled amateur band on a tuning dial).</summary>
+public readonly record struct ScaleZone(double Start, double End, ZoneKind Kind, string? Label = null);
 
 /// <summary>
 /// Framework-neutral description of a meter scale: range, mapping, ticks, zones and captions.

@@ -15,6 +15,14 @@ public enum KnobMapping
     Logarithmic,
 }
 
+public enum KnobStyle
+{
+    /// <summary>Satin-black cap on a knurled skirt with a luminous indicator line (console style).</summary>
+    Knurled,
+    /// <summary>Glossy bakelite pointer knob with an ivory inlay line, as on vintage test equipment and radios.</summary>
+    ChickenHead,
+}
+
 /// <summary>
 /// Rotary parameter knob. It publishes a target <see cref="Value"/> (two-way bindable) and never processes audio.
 /// Interaction: vertical drag (Shift = fine), mouse wheel, arrow keys / PageUp / PageDown / Home / End,
@@ -28,12 +36,20 @@ public class RotaryKnob : FrameworkElement
 
     private readonly VisualCollection _children;
     private readonly ContainerVisual _root = new();
-    private readonly DrawingVisual _static = new();
+    private readonly DrawingVisual _scale = new();      // ticks and position labels (not scaled with the knob)
+    private readonly ContainerVisual _knob = new();     // the knob itself; shrinks to make room for labels
+    private readonly DrawingVisual _shadow = new();     // rotating drop shadow (chicken head)
+    private readonly DrawingVisual _static = new();     // knurled skirt and cap
+    private readonly DrawingVisual _body = new();       // rotating pointer body (chicken head)
+    private readonly DrawingVisual _hub = new();        // fixed-lighting hub dome (chicken head)
     private readonly DrawingVisual _valueArc = new();
     private readonly DrawingVisual _index = new();
     private readonly DrawingVisual _focus = new();
     private readonly RotateTransform _indexRotation = new(0, C.X, C.Y);
+    private readonly RotateTransform _shadowRotation = new(0, C.X + ShadowDx, C.Y + ShadowDy);
+    private readonly ScaleTransform _knobScale = new(1, 1, C.X, C.Y);
     private readonly MatrixTransform _rootTransform = new();
+    private const double ShadowDx = 4, ShadowDy = 7;
 
     private ParameterModel _model;
     private bool _dragging;
@@ -52,11 +68,19 @@ public class RotaryKnob : FrameworkElement
     {
         _children = new VisualCollection(this) { _root };
         _root.Transform = _rootTransform;
-        _root.Children.Add(_static);
-        _root.Children.Add(_valueArc);
-        _root.Children.Add(_index);
+        _root.Children.Add(_scale);
+        _root.Children.Add(_knob);
         _root.Children.Add(_focus);
+        _knob.Transform = _knobScale;
+        _knob.Children.Add(_shadow);
+        _knob.Children.Add(_static);
+        _knob.Children.Add(_body);
+        _knob.Children.Add(_hub);
+        _knob.Children.Add(_valueArc);
+        _knob.Children.Add(_index);
         _index.Transform = _indexRotation;
+        _body.Transform = _indexRotation;
+        _shadow.Transform = _shadowRotation;
         _model = CreateModel();
         DrawStatic();
         DrawIndex();
@@ -124,6 +148,31 @@ public class RotaryKnob : FrameworkElement
     public int TickCount { get => (int)GetValue(TickCountProperty); set => SetValue(TickCountProperty, value); }
     public static readonly DependencyProperty TickCountProperty = DependencyProperty.Register(
         nameof(TickCount), typeof(int), typeof(RotaryKnob), new FrameworkPropertyMetadata(11, OnAppearanceChanged));
+
+    /// <summary>Knob body: the console <see cref="Controls.KnobStyle.Knurled"/> cap or a vintage <see cref="Controls.KnobStyle.ChickenHead"/>.</summary>
+    public KnobStyle KnobStyle { get => (KnobStyle)GetValue(KnobStyleProperty); set => SetValue(KnobStyleProperty, value); }
+    public static readonly DependencyProperty KnobStyleProperty = DependencyProperty.Register(
+        nameof(KnobStyle), typeof(KnobStyle), typeof(RotaryKnob), new FrameworkPropertyMetadata(KnobStyle.Knurled, OnAppearanceChanged));
+
+    /// <summary>Body colour of a chicken-head knob. Default black bakelite; try dark brown (#FF3A2216) or ivory.</summary>
+    public Color KnobColor { get => (Color)GetValue(KnobColorProperty); set => SetValue(KnobColorProperty, value); }
+    public static readonly DependencyProperty KnobColorProperty = DependencyProperty.Register(
+        nameof(KnobColor), typeof(Color), typeof(RotaryKnob), new FrameworkPropertyMetadata(Color.FromRgb(0x1A, 0x18, 0x16), OnAppearanceChanged));
+
+    /// <summary>
+    /// Labels printed round the knob, spread evenly over the sweep (first label at the minimum, last at the maximum).
+    /// With <see cref="Step"/> = 1, <see cref="Minimum"/> = 0 and <see cref="Maximum"/> = count − 1 the knob becomes a
+    /// rotary selector switch. In XAML: <c>ScaleLabels="EXT,+INT,−INT,LINE"</c>. The knob shrinks to leave room for them.
+    /// </summary>
+    [System.ComponentModel.TypeConverter(typeof(StringListConverter))]
+    public IReadOnlyList<string>? ScaleLabels { get => (IReadOnlyList<string>?)GetValue(ScaleLabelsProperty); set => SetValue(ScaleLabelsProperty, value); }
+    public static readonly DependencyProperty ScaleLabelsProperty = DependencyProperty.Register(
+        nameof(ScaleLabels), typeof(IReadOnlyList<string>), typeof(RotaryKnob), new FrameworkPropertyMetadata(null, OnAppearanceChanged));
+
+    /// <summary>Colour of the ticks and labels printed on the panel round the knob.</summary>
+    public Color ScaleColor { get => (Color)GetValue(ScaleColorProperty); set => SetValue(ScaleColorProperty, value); }
+    public static readonly DependencyProperty ScaleColorProperty = DependencyProperty.Register(
+        nameof(ScaleColor), typeof(Color), typeof(RotaryKnob), new FrameworkPropertyMetadata(Color.FromRgb(0xB8, 0xC2, 0xBA), OnAppearanceChanged));
 
     #endregion
 
@@ -299,21 +348,69 @@ public class RotaryKnob : FrameworkElement
     {
         double u = _model.Mapping.ToNormalized(Value);
         _indexRotation.Angle = StartAngle + u * SweepAngle;
+        _shadowRotation.Angle = _indexRotation.Angle;
         DrawValueArc(u);
     }
 
+    private bool HasLabels => ScaleLabels is { Count: > 0 };
+
     private void DrawStatic()
     {
-        using var dc = _static.RenderOpen();
-        var tickBrush = VintageArt.Frozen(Color.FromRgb(0xB8, 0xC2, 0xBA));
-        int n = Math.Max(2, TickCount);
-        for (int i = 0; i < n; i++)
+        bool labels = HasLabels;
+        double k = labels ? 0.7 : 1.0;
+        _knobScale.ScaleX = _knobScale.ScaleY = k;
+        DrawScale(labels);
+
+        using (var dc = _static.RenderOpen())
         {
-            double a = StartAngle + SweepAngle * i / (n - 1);
-            bool major = i == 0 || i == n - 1 || i == (n - 1) / 2 && (n - 1) % 2 == 0;
-            dc.DrawLine(VintageArt.FrozenPen(tickBrush, major ? 4 : 2.6, PenLineCap.Round), Polar(88, a), Polar(major ? 98 : 95, a));
+            if (KnobStyle == KnobStyle.Knurled) DrawKnurled(dc);
+            else DrawSkirt(dc);
+        }
+        DrawChickenHead();
+    }
+
+    private void DrawScale(bool labels)
+    {
+        using var dc = _scale.RenderOpen();
+        var ink = VintageArt.Frozen(ScaleColor);
+        if (!labels)
+        {
+            int n = Math.Max(2, TickCount);
+            for (int i = 0; i < n; i++)
+            {
+                double a = StartAngle + SweepAngle * i / (n - 1);
+                bool major = i == 0 || i == n - 1 || i == (n - 1) / 2 && (n - 1) % 2 == 0;
+                dc.DrawLine(VintageArt.FrozenPen(ink, major ? 4 : 2.6, PenLineCap.Round), Polar(88, a), Polar(major ? 98 : 95, a));
+            }
+            return;
         }
 
+        // Selector-style panel printing: a small arrowhead at each position pointing at the knob, and its label outside.
+        var list = ScaleLabels!;
+        int count = list.Count;
+        for (int i = 0; i < count; i++)
+        {
+            double a = count == 1 ? 0 : StartAngle + SweepAngle * i / (count - 1);
+            var tip = Polar(66, a);
+            var g = new StreamGeometry();
+            using (var ctx = g.Open())
+            {
+                ctx.BeginFigure(tip, true, true);
+                ctx.LineTo(Polar(76, a - 4.5), true, false);
+                ctx.LineTo(Polar(76, a + 4.5), true, false);
+            }
+            g.Freeze();
+            dc.DrawGeometry(ink, null, g);
+            if (string.IsNullOrEmpty(list[i])) continue;
+            var ft = VintageArt.Text(list[i], 17, ink, FontWeights.Bold, 1);
+            // Push wide labels out a little more at the sides so they clear the arrowheads.
+            double side = Math.Abs(Math.Sin(a * Math.PI / 180));
+            VintageArt.DrawCenteredText(dc, ft, Polar(88 + side * ft.Width * 0.3, a));
+        }
+    }
+
+    private void DrawKnurled(DrawingContext dc)
+    {
         // Drop shadow
         var shadow = new RadialGradientBrush(new GradientStopCollection
         {
@@ -354,10 +451,145 @@ public class RotaryKnob : FrameworkElement
         dc.DrawEllipse(VintageArt.GrainBrush(2.0, 0.35), null, C, 58, 58);
     }
 
+    /// <summary>The round moulded skirt under a chicken-head pointer, lit from the top left.</summary>
+    private void DrawSkirt(DrawingContext dc)
+    {
+        var c = KnobColor;
+        var shadow = new RadialGradientBrush(new GradientStopCollection { new(Color.FromArgb(170, 0, 0, 0), 0.75), new(Color.FromArgb(0, 0, 0, 0), 1) });
+        shadow.Freeze();
+        dc.DrawEllipse(shadow, null, new Point(C.X + ShadowDx * 0.7, C.Y + ShadowDy * 0.7), 50, 50);
+        var skirt = new LinearGradientBrush(new GradientStopCollection
+        {
+            new(VintageArt.Blend(c, Colors.White, 0.22), 0), new(c, 0.45), new(VintageArt.Blend(c, Colors.Black, 0.6), 1),
+        }, new Point(0.2, 0.1), new Point(0.8, 0.95));
+        skirt.Freeze();
+        dc.DrawEllipse(skirt, VintageArt.FrozenPen(VintageArt.Frozen(VintageArt.Blend(c, Colors.Black, 0.85)), 1.5), C, 42, 42);
+        var step = new RadialGradientBrush(new GradientStopCollection
+        {
+            new(Color.FromArgb(0, 0, 0, 0), 0.82), new(Color.FromArgb(110, 0, 0, 0), 0.9), new(Color.FromArgb(0, 0, 0, 0), 0.97),
+        });
+        step.Freeze();
+        dc.DrawEllipse(step, null, C, 42, 42);
+        var rimLight = new LinearGradientBrush(Color.FromArgb(90, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), new Point(0.25, 0), new Point(0.6, 0.6));
+        rimLight.Freeze();
+        dc.DrawEllipse(null, new Pen(rimLight, 1.6), C, 40.5, 40.5);
+    }
+
+    /// <summary>Outline of a chicken-head pointer pointing up (to 12 o'clock): a long tapered beak, broad shoulders and a short tail.</summary>
+    private static Geometry ChickenHeadOutline(double dx = 0, double dy = 0)
+    {
+        Point Q(double x, double y) => new(C.X + x + dx, C.Y + y + dy);
+        var g = new StreamGeometry();
+        using (var ctx = g.Open())
+        {
+            ctx.BeginFigure(Q(-6, -87), true, true);
+            ctx.ArcTo(Q(6, -87), new Size(6, 6), 0, false, SweepDirection.Clockwise, true, true);       // rounded beak tip
+            ctx.BezierTo(Q(11, -62), Q(28, -36), Q(30, -8), true, true);                                    // right side to the shoulder
+            ctx.BezierTo(Q(31, 14), Q(22, 30), Q(0, 34), true, true);                                       // round the back of the head
+            ctx.BezierTo(Q(-22, 30), Q(-31, 14), Q(-30, -8), true, true);
+            ctx.BezierTo(Q(-28, -36), Q(-11, -62), Q(-6, -87), true, true);
+        }
+        g.Freeze();
+        return g;
+    }
+
+    private void DrawChickenHead()
+    {
+        bool on = KnobStyle == KnobStyle.ChickenHead;
+        using var shadowDc = _shadow.RenderOpen();
+        using var bodyDc = _body.RenderOpen();
+        using var hubDc = _hub.RenderOpen();
+        if (!on) return;
+        var c = KnobColor;
+
+        // Two-step soft shadow on the panel, rotating with the knob.
+        var outline = ChickenHeadOutline(ShadowDx, ShadowDy);
+        shadowDc.PushTransform(new ScaleTransform(1.07, 1.07, C.X + ShadowDx, C.Y + ShadowDy));
+        shadowDc.DrawGeometry(VintageArt.Frozen(Color.FromArgb(55, 0, 0, 0)), null, outline);
+        shadowDc.Pop();
+        shadowDc.DrawGeometry(VintageArt.Frozen(Color.FromArgb(120, 0, 0, 0)), null, outline);
+
+        // Body: moulded so the centre line is a raised ridge; the shading travels with it as the knob turns.
+        var across = new LinearGradientBrush(new GradientStopCollection
+        {
+            new(VintageArt.Blend(c, Colors.Black, 0.6), 0.0),
+            new(VintageArt.Blend(c, Colors.White, 0.10), 0.30),
+            new(VintageArt.Blend(c, Colors.White, 0.30), 0.46),
+            new(VintageArt.Blend(c, Colors.White, 0.06), 0.56),
+            new(VintageArt.Blend(c, Colors.Black, 0.7), 1.0),
+        }, new Point(C.X - 32, C.Y), new Point(C.X + 32, C.Y)) { MappingMode = BrushMappingMode.Absolute };
+        across.Freeze();
+        var body = ChickenHeadOutline();
+        bodyDc.DrawGeometry(across, VintageArt.FrozenPen(VintageArt.Frozen(VintageArt.Blend(c, Colors.Black, 0.8)), 1.6), body);
+        var along = new LinearGradientBrush(new GradientStopCollection
+        {
+            new(Color.FromArgb(0, 0, 0, 0), 0.0), new(Color.FromArgb(0, 0, 0, 0), 0.55), new(Color.FromArgb(120, 0, 0, 0), 1.0),
+        }, new Point(C.X, C.Y - 84), new Point(C.X, C.Y + 40)) { MappingMode = BrushMappingMode.Absolute };
+        along.Freeze();
+        bodyDc.DrawGeometry(along, null, body);
+
+        // Raised spine running out to the beak
+        var spine = new StreamGeometry();
+        using (var ctx = spine.Open())
+        {
+            ctx.BeginFigure(new Point(C.X - 7, C.Y - 18), true, true);
+            ctx.LineTo(new Point(C.X - 2.5, C.Y - 82), true, true);
+            ctx.LineTo(new Point(C.X + 2.5, C.Y - 82), true, true);
+            ctx.LineTo(new Point(C.X + 7, C.Y - 18), true, true);
+        }
+        spine.Freeze();
+        var spineBrush = new LinearGradientBrush(VintageArt.Blend(c, Colors.White, 0.32), VintageArt.Blend(c, Colors.Black, 0.25), new Point(0, 0.5), new Point(1, 0.5));
+        spineBrush.Freeze();
+        bodyDc.DrawGeometry(spineBrush, null, spine);
+
+        // Ivory inlay line from the hub to the beak (drawn in the index layer so it sits on top of the hub)
+        // Gloss: a soft reflection along the left flank
+        var gloss = new LinearGradientBrush(Color.FromArgb(90, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), new Point(0, 0), new Point(1, 1));
+        gloss.Freeze();
+        var glossGeo = new StreamGeometry();
+        using (var ctx = glossGeo.Open())
+        {
+            ctx.BeginFigure(new Point(C.X - 6, C.Y - 78), true, true);
+            ctx.BezierTo(new Point(C.X - 14, C.Y - 54), new Point(C.X - 24, C.Y - 32), new Point(C.X - 25, C.Y - 8), true, true);
+            ctx.LineTo(new Point(C.X - 20, C.Y - 8), true, true);
+            ctx.BezierTo(new Point(C.X - 19, C.Y - 32), new Point(C.X - 10, C.Y - 54), new Point(C.X - 4, C.Y - 76), true, true);
+        }
+        glossGeo.Freeze();
+        bodyDc.DrawGeometry(gloss, null, glossGeo);
+
+        // Hub: a domed boss lit from the top left; it does not rotate, so its highlight stays put.
+        var hub = new RadialGradientBrush(new GradientStopCollection
+        {
+            new(VintageArt.Blend(c, Colors.White, 0.42), 0.0),
+            new(VintageArt.Blend(c, Colors.White, 0.12), 0.35),
+            new(c, 0.7),
+            new(VintageArt.Blend(c, Colors.Black, 0.65), 1.0),
+        })
+        { GradientOrigin = new Point(0.32, 0.28), Center = new Point(0.42, 0.38), RadiusX = 0.75, RadiusY = 0.75 };
+        hub.Freeze();
+        hubDc.DrawEllipse(hub, VintageArt.FrozenPen(VintageArt.Frozen(VintageArt.Blend(c, Colors.Black, 0.8)), 1.4), C, 23, 23);
+        var hubSpec = new RadialGradientBrush(Color.FromArgb(150, 255, 255, 255), Color.FromArgb(0, 255, 255, 255));
+        hubSpec.Freeze();
+        hubDc.DrawEllipse(hubSpec, null, new Point(C.X - 8, C.Y - 9), 8, 5);
+    }
+
     private void DrawIndex()
     {
         var color = IndicatorColor;
         using var dc = _index.RenderOpen();
+        if (KnobStyle == KnobStyle.ChickenHead)
+        {
+            // Ivory inlay along the top of the spine, slightly worn at the hub end.
+            // Ivory on dark bakelite; on a light knob the inlay is dark instead.
+            var k = KnobColor;
+            bool light = 0.299 * k.R + 0.587 * k.G + 0.114 * k.B > 140;
+            var ivory = light ? Color.FromRgb(0x2A, 0x1E, 0x14) : Color.FromRgb(0xEE, 0xE6, 0xCC);
+            dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(Color.FromArgb(150, 0, 0, 0)), 5, PenLineCap.Round), new Point(C.X, C.Y - 10), new Point(C.X, C.Y - 80));
+            var inlay = new LinearGradientBrush(VintageArt.WithAlpha(ivory, 0.55), ivory, new Point(0.5, 1), new Point(0.5, 0));
+            inlay.Freeze();
+            dc.DrawLine(new Pen(inlay, 3) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round }, new Point(C.X, C.Y - 11), new Point(C.X, C.Y - 79));
+            return;
+        }
         // Recessed groove with a luminous green fill
         dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(Color.FromArgb(200, 0, 0, 0)), 7, PenLineCap.Round), Polar(20, 0), Polar(53, 0));
         dc.DrawLine(VintageArt.FrozenPen(VintageArt.Frozen(VintageArt.WithAlpha(color, 0.35)), 8, PenLineCap.Round), Polar(22, 0), Polar(52, 0));

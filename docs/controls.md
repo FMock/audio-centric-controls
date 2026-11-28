@@ -4,6 +4,7 @@ Every control is in the `acc` namespace (`xmlns:acc="https://github.com/FMock/au
 
 - [AnalogMeter](#analogmeter) · [LedBarMeter](#ledbarmeter) · [CorrelationMeter](#correlationmeter)
 - [RotaryKnob](#rotaryknob) · [ConsoleFader](#consolefader) · [IlluminatedToggle](#illuminatedtoggle)
+- Vintage: [TuningDial](#tuningdial) · [BandspreadDial](#bandspreaddial) · [JewelLamp](#jewellamp) · [chicken-head knobs](#rotaryknob)
 - [WaveformDisplay](#waveformdisplay) · [Oscilloscope](#oscilloscope) · [SpectrumAnalyzer](#spectrumanalyzer) · [FrequencyResponseGraph](#frequencyresponsegraph)
 
 ---
@@ -87,13 +88,24 @@ Edgewise −1…+1 stereo phase correlation meter: green above 0, amber and red 
 | `Step` [0 = continuous], `Detent` [NaN] | Quantization and a sticky detent (0 dB, centre pan) |
 | `SweepAngle` [270], `TickCount` [11], `ShowValueArc` [true], `IndicatorColor` | Appearance |
 | `Unit` [""], `IsReadOnly` [false] | Used by the automation peer and readouts |
+| `KnobStyle` [Knurled] | `ChickenHead`: a glossy bakelite pointer knob with an inlay line, on a round skirt |
+| `KnobColor` [black bakelite] | Chicken-head body colour, e.g. brown `#FF3A2216` or ivory `#FFD8CCB0` (the inlay turns dark on light knobs) |
+| `ScaleLabels` [none] | Labels round the knob, spread evenly over the sweep; written as `"EXT,+INT,−INT,LINE"` in XAML. The knob shrinks to make room |
+| `ScaleColor` | Colour of the printed ticks and labels |
 
 Input: vertical drag (Shift for fine), mouse wheel, arrow keys, PageUp/PageDown, Home/End, double-click.
 
 ```xml
 <acc:RotaryKnob Width="80" Height="80" Minimum="20" Maximum="20000" Mapping="Logarithmic"
                 DefaultValue="1000" Unit="Hz" Value="{Binding CutoffHz}" />
+
+<!-- A chicken-head rotary selector switch: four positions, one label each -->
+<acc:RotaryKnob KnobStyle="ChickenHead" Width="110" Height="110" ShowValueArc="False"
+                Minimum="0" Maximum="3" Step="1" SweepAngle="120" ScaleLabels="EXT,+INT,−INT,LINE"
+                Value="{Binding SyncSource}" />
 ```
+
+A programmatic `Value` is shown as given. Only user input is snapped to `Step`, because the host's value is the truth.
 
 ## ConsoleFader
 
@@ -124,6 +136,62 @@ A `ToggleButton`, so `IsChecked`, `Command`, `Click` and keyboard support work a
 ```xml
 <acc:IlluminatedToggle OnLabel="Bypass" LampColor="#FFFFB01E"
                        IsChecked="{Binding BypassRequested}" ActualState="{Binding BypassActual}" Status="{Binding BypassStatus}" />
+```
+
+---
+
+## TuningDial
+
+Large backlit dial in the style of a vintage communications receiver. Band scales and a logging scale are printed on a disc that turns behind a fixed red hairline, seen through a half-moon window, with a cover plate below.
+
+| Property | Meaning |
+|---|---|
+| `Bands` [`DialPresets.ShortwaveReceiver`] | The printed scales, outermost first. Each is a `ScaleDefinition`: `Title` is the red band marker, `Caption` the text along the arc, labelled `Zones` mark sub-bands. `DialPresets.AudioOscillator` is a 3-range 20 Hz–20 kHz set |
+| `SelectedBandIndex` [0] (two-way) | Active band. It is printed boldly; the others are dimmed (`DimInactiveBands`) |
+| `Position` [0] (two-way) | Dial travel, 0…1 |
+| `Frequency` (two-way) | Tuning in the selected band's units, kept in sync with `Position` through the band's mapping. Switching band keeps the position, like a real band switch |
+| `LoggingScale` [0–100] | Outer reference scale; `{x:Null}` hides it |
+| `TravelAngle` [180], `ShowCoverPlate` [true] | Disc rotation over the travel; without the plate the control is half as tall |
+| `FaceColor`, `InkColor`, `PointerColor`, `PanelColor`, `IsBacklightEnabled`, `BacklightIntensity`, `IsReadOnly` | Appearance and behaviour |
+
+Input: drag the disc sideways (it follows the pointer), wheel (Shift for fine), ←/→, PgUp/PgDn, Home/End.
+
+```xml
+<acc:TuningDial Width="440" Height="440" SelectedBandIndex="{Binding Band}" Frequency="{Binding TunedMHz}" />
+<acc:TuningDial Width="420" Height="218" ShowCoverPlate="False" LoggingScale="{x:Null}"
+                Bands="{x:Static scales:DialPresets.AudioOscillator}" Frequency="{Binding OscillatorHz}" />
+```
+
+## BandspreadDial
+
+The small fine-tuning indicator: a backlit scale wheel turning behind a hairline in a deep, recessed escutcheon.
+
+| Property | Meaning |
+|---|---|
+| `Value` [0] (two-way), `Minimum` [0], `Maximum` [100] | Reading |
+| `IsWrapping` [true] | Endless wheel (…95, 0, 5…); false stops at the ends |
+| `Scale` [`DialPresets.Bandspread`], `DegreesPerUnit` [NaN = one turn per range when wrapping, else 3°] | Printed scale and wheel gearing |
+| `Caption` | Legend printed on the glass, e.g. "BAND SPREAD" |
+| `FaceColor`, `InkColor`, `PointerColor`, `PanelColor`, backlight, `IsReadOnly` | Appearance and behaviour |
+
+```xml
+<acc:BandspreadDial Width="300" Height="126" Value="{Binding Fine}" Caption="BAND SPREAD" />
+```
+
+## JewelLamp
+
+Faceted jewel pilot light in a metal bezel. It is dark and faceted when off. When lit, it glows through the facets and spills a halo onto the panel, fading in and out like a small bulb.
+
+| Property | Meaning |
+|---|---|
+| `IsLit` | State to show |
+| `Brightness` [1] | Lit level 0…1 |
+| `LampColor` [ruby] | Jewel colour: amber `#FFFFA820`, green `#FF4CFF6A`, blue `#FF5AB4FF`… |
+| `BezelColor` [brass] | Try `#FFC8CCD0` for chrome |
+| `WarmUpSeconds` [0.08] | Bulb time constant; 0 switches instantly |
+
+```xml
+<acc:JewelLamp Width="40" Height="40" IsLit="{Binding PowerOn}" />
 ```
 
 ---
