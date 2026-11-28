@@ -13,6 +13,14 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The gallery's host-side analysis providers are plain C# on top of Core; they are verified here against the design reference. -->
+    <Compile Include="..\..\examples\AudioControlsGallery.Wpf\Simulation\SpectrumAnalysis.cs" Link="GalleryProviders\SpectrumAnalysis.cs" />
+    <Compile Include="..\..\examples\AudioControlsGallery.Wpf\Simulation\SimulatedSpectrumSource.cs" Link="GalleryProviders\SimulatedSpectrumSource.cs" />
+    <Compile Include="..\..\examples\AudioControlsGallery.Wpf\Simulation\Biquad.cs" Link="GalleryProviders\Biquad.cs" />
+    <Compile Include="..\..\examples\AudioControlsGallery.Wpf\Simulation\SimulatedFrequencyResponseSource.cs" Link="GalleryProviders\SimulatedFrequencyResponseSource.cs" />
+    <Compile Include="..\..\examples\AudioControlsGallery.Wpf\Simulation\SimulatedCorrelationSource.cs" Link="GalleryProviders\SimulatedCorrelationSource.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\AudioCentric.Controls.Core\AudioCentric.Controls.Core.csproj" />
   </ItemGroup>
 </Project>

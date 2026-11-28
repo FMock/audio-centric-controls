@@ -11,6 +11,8 @@ public enum SignalKind
     ReferenceTone,
     /// <summary>Uncorrelated pink-ish noise at about −20 dBFS RMS.</summary>
     Noise,
+    /// <summary>Logarithmic sine sweep, 20 Hz → 20 kHz every 8 s, at −12 dBFS.</summary>
+    Sweep,
     /// <summary>Digital silence.</summary>
     Silence,
 }
@@ -38,7 +40,14 @@ public sealed class SimulatedSignalEngine : IDisposable
     private volatile int _signal = (int)SignalKind.Program;
 
     // Program-source state
-    private double _kickPhase, _bassPhase, _tonePhase;
+    private double _kickPhase, _bassPhase, _tonePhase, _sweepPhase;
+
+    // Equalizer (host processing). The UI swaps in a new coefficient array; the audio thread keeps its filter state.
+    private const int MaxEqBands = 8;
+    private volatile Biquad[] _eq = Array.Empty<Biquad>();
+    private volatile bool _eqEnabled = true;
+    private readonly BiquadState[] _eqL = new BiquadState[MaxEqBands], _eqR = new BiquadState[MaxEqBands];
+    private volatile bool _invertRight, _mono;
     private readonly double[] _padPhase = new double[6];
     private double _pinkL, _pinkR, _hatHpL, _hatHpR;
     private double _nextHotHit = 9.0;
@@ -49,6 +58,7 @@ public sealed class SimulatedSignalEngine : IDisposable
         Right = new SimulatedMeterSource(SampleRate);
         Correlation = new SimulatedCorrelationSource(SampleRate);
         History = new SimulatedWaveformSource(SampleRate);
+        Spectrum = new SimulatedSpectrumSource(SampleRate);
         _thread = new Thread(Run) { IsBackground = true, Name = "Simulated audio engine", Priority = ThreadPriority.AboveNormal };
         _thread.Start();
     }
@@ -56,6 +66,24 @@ public sealed class SimulatedSignalEngine : IDisposable
     public SimulatedMeterSource Left { get; }
     public SimulatedMeterSource Right { get; }
     public SimulatedCorrelationSource Correlation { get; }
+
+    /// <summary>FFT analysis of the monitored (mid) signal.</summary>
+    public SimulatedSpectrumSource Spectrum { get; }
+
+    /// <summary>Replaces the equalizer cascade (at most 8 sections). Safe to call from the UI thread.</summary>
+    public void SetEqualizer(Biquad[] coefficients) => _eq = coefficients.Take(MaxEqBands).ToArray();
+
+    /// <summary>Equalizer in circuit (false = bypass).</summary>
+    public bool EqEnabled { get => _eqEnabled; set => _eqEnabled = value; }
+
+    /// <summary>Flips the polarity of the right channel, a wiring fault that drives correlation negative.</summary>
+    public bool InvertRight { get => _invertRight; set => _invertRight = value; }
+
+    /// <summary>
+    /// Mono check: the monitor path (level meters, scope, spectrum, history) hears (L+R)/2. Like a console's mono button
+    /// it does not change the stereo bus, so the correlation meter keeps reading the stereo signal.
+    /// </summary>
+    public bool Mono { get => _mono; set => _mono = value; }
 
     /// <summary>Recent stereo history for the oscilloscope and waveform captures.</summary>
     public SimulatedWaveformSource History { get; }
@@ -85,10 +113,15 @@ public sealed class SimulatedSignalEngine : IDisposable
             while (produced + BlockSize <= due)
             {
                 RenderBlock();
+                Correlation.Process(_left, _right); // stereo bus
+                if (_mono)
+                {
+                    for (int i = 0; i < BlockSize; i++) _left[i] = _right[i] = 0.5f * (_left[i] + _right[i]);
+                }
                 Left.Process(_left);
                 Right.Process(_right);
-                Correlation.Process(_left, _right);
                 History.Append(_left, _right);
+                Spectrum.Process(_left, _right);
                 produced += BlockSize;
             }
             Thread.Sleep(2);
@@ -99,6 +132,8 @@ public sealed class SimulatedSignalEngine : IDisposable
     {
         var kind = Signal;
         double target = Volatile.Read(ref _targetGain);
+        var eq = _eqEnabled ? _eq : Array.Empty<Biquad>();
+        bool invert = _invertRight;
         for (int i = 0; i < BlockSize; i++)
         {
             double t = (double)_sample / SampleRate;
@@ -114,6 +149,12 @@ public sealed class SimulatedSignalEngine : IDisposable
                     l = Pink(ref _pinkL) * 0.33;
                     r = Pink(ref _pinkR) * 0.33;
                     break;
+                case SignalKind.Sweep:
+                    double f = 20 * Math.Pow(1000, t % 8.0 / 8.0);
+                    _sweepPhase += 2 * Math.PI * f / SampleRate;
+                    if (_sweepPhase > 2 * Math.PI) _sweepPhase -= 2 * Math.PI;
+                    l = r = Decibels.ToAmplitude(-12) * Math.Sin(_sweepPhase);
+                    break;
                 case SignalKind.Silence:
                     l = r = 0;
                     break;
@@ -121,6 +162,13 @@ public sealed class SimulatedSignalEngine : IDisposable
                     (l, r) = Program(t);
                     break;
             }
+
+            for (int k = 0; k < eq.Length; k++)
+            {
+                l = _eqL[k].Process(eq[k], l);
+                r = _eqR[k].Process(eq[k], r);
+            }
+            if (invert) r = -r;
 
             _gain = _gainCoeff * _gain + (1 - _gainCoeff) * target;
             _left[i] = (float)(l * _gain);

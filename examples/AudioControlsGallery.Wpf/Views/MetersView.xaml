@@ -105,6 +105,34 @@
                 </Grid>
             </Border>
 
+            <!-- Stereo phase correlation -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="280" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Stereo phase correlation" Style="{StaticResource SectionTitle}" />
+                        <acc:CorrelationMeter Height="170" HorizontalAlignment="Left" Correlation="{Binding Correlation}"
+                                              MonoCheckCommand="{Binding MonoCheckCommand}" IsMonoActive="{Binding IsMono}"
+                                              FaceColor="{Binding Face.Color}" BacklightIntensity="{Binding Backlight}"
+                                              IsBacklightEnabled="{Binding IsPowered}" />
+                        <TextBlock Text="{Binding CorrelationText, StringFormat=ρ {0}}" Style="{StaticResource Readout}" HorizontalAlignment="Left" Margin="8,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="18,34,0,0">
+                        <TextBlock Style="{StaticResource Note}" Margin="0,0,0,10"
+                                   Text="ρ = Σ LR / √(Σ L² Σ R²), integrated by the host over 300 ms. Program sits near +1, Noise near 0. Flip the right channel's polarity to drive it negative. Silence shows NO SIGNAL rather than 0." />
+                        <WrapPanel>
+                            <acc:IlluminatedToggle OnLabel="Ø Invert R" LampColor="#FFFF3A26" IsChecked="{Binding InvertRight}" Margin="0,0,8,8" />
+                            <acc:IlluminatedToggle OnLabel="Mono" LampColor="#FFFFC03A" IsChecked="{Binding IsMono}" Margin="0,0,8,8" />
+                        </WrapPanel>
+                        <TextBlock Style="{StaticResource Note}" Margin="0,4,0,0"
+                                   Text="Mono audition sums the monitor path in the host engine, as a console's mono button does. With R inverted, the level meters and scope collapse, while this meter keeps reading the stereo bus." />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <!-- Stereo VU pair -->
             <Border Style="{StaticResource ConsolePanel}">
                 <StackPanel>

@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Windows.Threading;
 using System.Windows.Media;
 using AudioCentric.Controls.Dynamics;
+using AudioCentric.Controls.Input;
 using AudioCentric.Controls.Measurements;
 using AudioCentric.Controls.Plotting;
 using AudioCentric.Controls.Wpf.Controls;
@@ -21,6 +23,10 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
 
     public GalleryViewModel()
     {
+        _eq = new SimulatedFrequencyResponseSource(SimulatedSignalEngine.SampleRate);
+        _engine.SetEqualizer(_eq.Coefficients);
+        _eqBands = _eq.Bands;
+        RefreshResponse(); // theoretical now, measured shortly after on a worker thread
         ApplyGain();
         CompositionTarget.Rendering += OnFrame;
     }
@@ -114,7 +120,9 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
         // Peak maxima are aggregated by the provider across all blocks since the previous frame.
         PeakLeft = _engine.Left.ReadPeakDbfs();
         PeakRight = _engine.Right.ReadPeakDbfs();
+        bool wasValid = CorrelationValid;
         Correlation = _engine.Correlation.Value;
+        if (wasValid != CorrelationValid) OnPropertyChanged(nameof(CorrelationValid));
         bool ovL = _engine.Left.ReadOverload(), ovR = _engine.Right.ReadOverload();
         if (ovL != OverloadLeft || ovR != OverloadRight)
         {
@@ -138,7 +146,12 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
             _readoutPeakL = _readoutPeakR = double.NegativeInfinity;
         }
 
-        if (ScopeActive) UpdateScope();
+        if (DisplaysActive)
+        {
+            UpdateScope();
+            var spectrum = _engine.Spectrum.Latest;
+            if (!ReferenceEquals(spectrum, Spectrum)) Spectrum = spectrum;
+        }
         if (IsPlaying) AdvancePlayback(dt);
     }
 
@@ -149,6 +162,29 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
 
     public static string FormatDb(double db) =>
         double.IsNegativeInfinity(db) ? "−∞ dB" : db.ToString("+0.0;−0.0;0.0", CultureInfo.InvariantCulture) + " dB";
+
+    // ------------------------------------------------------------------ stereo correlation (Meters page)
+
+    public bool CorrelationValid => !double.IsNaN(Correlation);
+
+    private bool _isMono;
+    /// <summary>Mono audition, carried out by the host engine on the monitor path.</summary>
+    public bool IsMono
+    {
+        get => _isMono;
+        set { if (Set(ref _isMono, value)) _engine.Mono = value; }
+    }
+
+    public RelayCommand MonoCheckCommand => _monoCheckCommand ??= new RelayCommand(_ => IsMono = !IsMono);
+    private RelayCommand? _monoCheckCommand;
+
+    private bool _invertRight;
+    /// <summary>Flips the right channel's polarity at the source, so the correlation swings negative.</summary>
+    public bool InvertRight
+    {
+        get => _invertRight;
+        set { if (Set(ref _invertRight, value)) _engine.InvertRight = value; }
+    }
 
     // ------------------------------------------------------------------ appearance options (Meters page)
 
@@ -186,8 +222,8 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
     public static double[] TimeSteps { get; } = Steps125.Range(0.0001, 0.05);
     public static double[] AmplitudeSteps { get; } = Steps125.Range(0.01, 1);
 
-    /// <summary>Set by the Displays page while it is visible, so history is copied only when someone is looking.</summary>
-    public bool ScopeActive { get; set; }
+    /// <summary>Set by the Displays page while it is visible, so history and spectra are copied only when someone is looking.</summary>
+    public bool DisplaysActive { get; set; }
 
     private double _timeIndex = Array.IndexOf(TimeSteps, 0.001);
     public double TimeIndex
@@ -253,6 +289,132 @@ public sealed class GalleryViewModel : ObservableObject, IDisposable
         // Channel 2 first: the scope processes both channels when channel 1 changes.
         if (ShowChannel2) ScopeTrace2 = new TraceSnapshot(history.SampleRate, start, r);
         ScopeTrace = new TraceSnapshot(history.SampleRate, start, l);
+    }
+
+    // ------------------------------------------------------------------ spectrum analyzer (Displays page)
+
+    private SpectrumSnapshot? _spectrum;
+    public SpectrumSnapshot? Spectrum { get => _spectrum; private set => Set(ref _spectrum, value); }
+
+    public static int[] FftSizes { get; } = { 1024, 2048, 4096, 8192, 16384 };
+
+    /// <summary>FFT length requested from the analysis provider (the host owns framing and the FFT).</summary>
+    public int FftSize
+    {
+        get => _engine.Spectrum.FftSize;
+        set { if (value != _engine.Spectrum.FftSize) { _engine.Spectrum.FftSize = value; OnPropertyChanged(); } }
+    }
+
+    private SpectrumDisplayMode _spectrumMode = SpectrumDisplayMode.Line;
+    public SpectrumDisplayMode SpectrumMode { get => _spectrumMode; set => Set(ref _spectrumMode, value); }
+
+    private int _bandsPerOctave = 3;
+    public int BandsPerOctave { get => _bandsPerOctave; set => Set(ref _bandsPerOctave, value); }
+
+    private BandAggregation _bandAggregation = BandAggregation.Maximum;
+    public BandAggregation BandAggregation { get => _bandAggregation; set => Set(ref _bandAggregation, value); }
+
+    private double _spectrumAveraging = 0.25;
+    public double SpectrumAveraging { get => _spectrumAveraging; set => Set(ref _spectrumAveraging, value); }
+
+    private bool _spectrumPeakHold = true;
+    public bool SpectrumPeakHold { get => _spectrumPeakHold; set => Set(ref _spectrumPeakHold, value); }
+
+    // ------------------------------------------------------------------ equalizer and frequency response (Displays page)
+
+    private readonly SimulatedFrequencyResponseSource _eq;
+    private int _measureGeneration;
+    private bool _measuring;
+
+    private IReadOnlyList<EqBand> _eqBands;
+    /// <summary>Bands as acknowledged by the host after constraining each request.</summary>
+    public IReadOnlyList<EqBand> EqBands { get => _eqBands; private set => Set(ref _eqBands, value); }
+
+    private ResponseSnapshot? _eqResponse;
+    public ResponseSnapshot? EqResponse { get => _eqResponse; private set => Set(ref _eqResponse, value); }
+
+    private ResponseSnapshot? _eqMeasured;
+    public ResponseSnapshot? EqMeasured { get => _eqMeasured; private set => Set(ref _eqMeasured, value); }
+
+    private int _selectedBand = 3;
+    public int SelectedBand { get => _selectedBand; set => Set(ref _selectedBand, value); }
+
+    private bool _eqEnabled = true;
+    /// <summary>EQ in circuit. When bypassed the processor is flat, and so is the response shown.</summary>
+    public bool EqEnabled
+    {
+        get => _eqEnabled;
+        set { if (Set(ref _eqEnabled, value)) { _engine.EqEnabled = value; RefreshResponse(); } }
+    }
+
+    private bool _showMeasured = true;
+    public bool ShowMeasured
+    {
+        get => _showMeasured;
+        set { if (Set(ref _showMeasured, value)) RefreshResponse(); }
+    }
+
+    private bool _showPhase;
+    public bool ShowPhase { get => _showPhase; set => Set(ref _showPhase, value); }
+
+    public RelayCommand BandChangeCommand => _bandChangeCommand ??= new RelayCommand(p =>
+    {
+        if (p is not EqBandChangeRequest request) return;
+        _eq.Apply(request); // the host constrains the request; the graph then shows what was applied
+        ApplyEq();
+    });
+    private RelayCommand? _bandChangeCommand;
+
+    public RelayCommand ResetEqCommand => _resetEqCommand ??= new RelayCommand(_ =>
+    {
+        _eq.SetBands(SimulatedFrequencyResponseSource.DefaultBands);
+        ApplyEq();
+    });
+    private RelayCommand? _resetEqCommand;
+
+    private void ApplyEq()
+    {
+        _engine.SetEqualizer(_eq.Coefficients);
+        EqBands = _eq.Bands;
+        RefreshResponse();
+    }
+
+    private void RefreshResponse()
+    {
+        if (!EqEnabled)
+        {
+            EqResponse = SimulatedFrequencyResponseSource.Flat(_eq.SampleRate);
+            EqMeasured = null;
+            return;
+        }
+        EqResponse = _eq.ComputeTheoretical();
+        if (ShowMeasured) StartMeasurement();
+        else EqMeasured = null;
+    }
+
+    /// <summary>
+    /// Measures the current coefficients on a worker thread. If the bands change meanwhile, one more measurement
+    /// follows, so a fast drag keeps at most one measurement in flight and the final state is always measured.
+    /// </summary>
+    private void StartMeasurement()
+    {
+        int generation = ++_measureGeneration;
+        if (_measuring) return;
+        _measuring = true;
+        var bands = _eq.Bands;
+        int rate = _eq.SampleRate;
+        var dispatcher = Dispatcher.CurrentDispatcher;
+        Task.Run(() =>
+        {
+            var probe = new SimulatedFrequencyResponseSource(rate);
+            probe.SetBands(bands);
+            return probe.Measure(fftSize: 8192, frames: 24, noiseDb: -66, seed: generation);
+        }).ContinueWith(t => dispatcher.BeginInvoke(() =>
+        {
+            _measuring = false;
+            if (t.IsCompletedSuccessfully && ShowMeasured && EqEnabled) EqMeasured = t.Result;
+            if (generation != _measureGeneration && ShowMeasured && EqEnabled) StartMeasurement();
+        }));
     }
 
     // ------------------------------------------------------------------ recording (Displays page)

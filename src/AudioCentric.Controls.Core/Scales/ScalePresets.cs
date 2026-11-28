@@ -138,4 +138,27 @@ public static class ScalePresets
             -60.0, -54, -48, -42, -36, -32, -28, -24, -21, -18, -16, -14,
             -12, -10, -8, -7, -6, -5, -4, -3, -2, -1, -0.5, 0,
         }, -12.5, -3.5);
+
+    /// <summary>
+    /// Stereo phase correlation, −1…+1 with 0 centred: red −1…−0.5, amber −0.5…−0.1, neutral around 0,
+    /// green +0.1…+1. Linear, so the centre reading sits exactly in the middle.
+    /// </summary>
+    public static ScaleDefinition Correlation { get; } = new()
+    {
+        Minimum = -1,
+        Maximum = 1,
+        Mapping = new LinearMapping(-1, 1),
+        Title = "CORRELATION",
+        Unit = MeasurementUnit.Correlation,
+        LowEndGlyph = "−",
+        HighEndGlyph = "+",
+        MajorTicks = new ScaleTick[] { new(-1, "−1"), new(-0.5, "−.5"), new(0, "0"), new(0.5, "+.5"), new(1, "+1") },
+        MinorTicks = Enumerable.Range(-9, 19).Where(i => i % 5 != 0).Select(i => i / 10.0).ToArray(),
+        Zones = new[]
+        {
+            new ScaleZone(-1, -0.5, ZoneKind.Danger),
+            new ScaleZone(-0.5, -0.1, ZoneKind.Warning),
+            new ScaleZone(0.1, 1, ZoneKind.Good),
+        },
+    };
 }

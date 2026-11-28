@@ -9,14 +9,14 @@ public partial class DisplaysView : UserControl
     public DisplaysView()
     {
         InitializeComponent();
-        // Copy scope history only while this page is on screen.
+        // Copy scope history and spectra only while this page is on screen.
         Loaded += (_, _) =>
         {
             if (DataContext is not GalleryViewModel vm) return;
-            vm.ScopeActive = true;
+            vm.DisplaysActive = true;
             if (vm.Recording == null) vm.Capture();
         };
-        Unloaded += (_, _) => { if (DataContext is GalleryViewModel vm) vm.ScopeActive = false; };
+        Unloaded += (_, _) => { if (DataContext is GalleryViewModel vm) vm.DisplaysActive = false; };
     }
 
     private void OnArm(object sender, RoutedEventArgs e) => Scope.Arm();

@@ -3,6 +3,8 @@ namespace AudioCentric.Controls.Scales;
 /// <summary>Semantic zone color; the renderer chooses the actual brushes.</summary>
 public enum ZoneKind
 {
+    /// <summary>A favourable region, e.g. the positive half of a correlation scale. Least severe.</summary>
+    Good = -1,
     Normal,
     Warning,
     Danger,
@@ -50,9 +52,9 @@ public sealed class ScaleDefinition
     /// <summary>The most severe zone containing <paramref name="value"/>.</summary>
     public ZoneKind ZoneAt(double value)
     {
-        var kind = ZoneKind.Normal;
+        ZoneKind? kind = null;
         foreach (var z in Zones)
-            if (value >= z.Start && value <= z.End && z.Kind > kind) kind = z.Kind;
-        return kind;
+            if (value >= z.Start && value <= z.End && (kind == null || z.Kind > kind)) kind = z.Kind;
+        return kind ?? ZoneKind.Normal;
     }
 }
