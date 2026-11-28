@@ -516,12 +516,6 @@ public class SpectrumAnalyzer : FrameworkElement, IRenderTickable
         if (DisplayMode == SpectrumDisplayMode.Bars)
             parts.Add($"1/{BandsPerOctave} oct {(BandAggregation == BandAggregation.Maximum ? "max" : "power")}");
         if (AveragingTime > 0) parts.Add($"AVG {AveragingTime.ToString("0.##", ci)} s");
-        if (parts.Count > 0)
-        {
-            var ft = VintageArt.Text(string.Join("  ·  ", parts), fs, dim, FontWeights.SemiBold, ppd);
-            dc.DrawText(ft, new Point(_plot.Left, y - ft.Height / 2));
-        }
-
         string unit = (s?.Unit ?? MeasurementUnit.DbFs).Symbol();
         string right = IsPeakHoldEnabled ? $"{unit}  ·  PEAK HOLD" : unit;
         // DC has no position on a log axis, so it gets its own readout.
@@ -529,6 +523,19 @@ public class SpectrumAnalyzer : FrameworkElement, IRenderTickable
             right = $"DC {FormatDb(s.LevelsDb[0])}   " + right;
         var rt = VintageArt.Text(right, fs, VintageArt.Frozen(VintageArt.WithAlpha(PeakColor, 0.9)), FontWeights.SemiBold, ppd);
         dc.DrawText(rt, new Point(_plot.Right - rt.Width, y - rt.Height / 2));
+
+        // The left-hand info gives way to the status: drop trailing parts until it fits in the space left over.
+        double room = _plot.Width - rt.Width - fs * 1.5;
+        while (parts.Count > 0)
+        {
+            var ft = VintageArt.Text(string.Join("  ·  ", parts), fs, dim, FontWeights.SemiBold, ppd);
+            if (ft.Width <= room)
+            {
+                dc.DrawText(ft, new Point(_plot.Left, y - ft.Height / 2));
+                break;
+            }
+            parts.RemoveAt(parts.Count - 1);
+        }
 
         if (_cursor is Point c && _plot.Contains(c) && _hasData)
         {

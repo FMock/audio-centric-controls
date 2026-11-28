@@ -1,16 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <UseWPF>true</UseWPF>
     <RootNamespace>AudioCentric.Controls.Wpf</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>AudioCentric.Controls.Wpf</PackageId>
-    <Description>WPF renderer for Audio-Centric-Controls: vintage analog meters, LED meters, knobs, faders, switches and audio displays.</Description>
+    <IsPackable>true</IsPackable>
+    <!-- Pure IL: mark the assembly AnyCPU so AnyCPU and ARM64 apps can consume the package. The solution still builds it as x64 into bin\x64\<Configuration>. -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Description>WPF renderer for Audio-Centric-Controls: vintage VU/peak/RMS meters, LED meters, knobs, faders, illuminated switches, waveform display, oscilloscope, FFT spectrum analyzer, frequency-response/EQ graph and stereo correlation meter.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\AudioCentric.Controls.Core\AudioCentric.Controls.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="AudioCentric.Controls.Wpf.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 </Project>

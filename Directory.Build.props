@@ -29,6 +29,27 @@
     <RepositoryUrl>https://github.com/FMock/audio-centric-controls</RepositoryUrl>
   </PropertyGroup>
 
+  <!--
+    NuGet packaging (only AudioCentric.Controls.Core and AudioCentric.Controls.Wpf are packable).
+    `dotnet pack -c Release` writes .nupkg/.snupkg files to bin\x64\Release\packages\.
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <PackageOutputPath>$(OutputPath)packages\</PackageOutputPath>
+    <PackageProjectUrl>https://github.com/FMock/audio-centric-controls</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>audio;wpf;vu-meter;peak-meter;knob;fader;oscilloscope;spectrum-analyzer;waveform;eq;dsp;controls</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Source Link (built into the .NET 8 SDK) plus a symbol package, so consumers can step into the controls. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true' Or '$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
