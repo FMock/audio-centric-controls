@@ -10,7 +10,9 @@ An open-source library of reusable audio controls and visualization components, 
 | `RotaryKnob`: linear/log mapping, detents, steps, drag/wheel/keyboard, double-click reset | ✅ |
 | `ConsoleFader`: dB taper with unity mark and −∞, vertical/horizontal | ✅ |
 | `IlluminatedToggle`: push-button, square cap and lever styles; momentary/latching; pending/fault states | ✅ |
-| Waveform display, oscilloscope, FFT spectrum analyzer, frequency-response graph, stereo correlation meter | planned |
+| `WaveformDisplay`: peak-preserving min/max overview, sample-level zoom, ruler, playhead, selection, stereo lanes | ✅ |
+| `Oscilloscope`: CRT look, 1-2-5 timebase, Free/Auto/Normal/Single trigger with level, slope and holdoff, freeze, persistence, 2 channels | ✅ |
+| FFT spectrum analyzer, frequency-response graph, stereo correlation meter | planned |
 
 All artwork is procedural vector graphics. It stays sharp at any size and DPI.
 

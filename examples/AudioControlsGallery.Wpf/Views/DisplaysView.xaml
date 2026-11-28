@@ -1,0 +1,105 @@
+<UserControl x:Class="AudioControlsGallery.Views.DisplaysView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:acc="https://github.com/FMock/audio-centric-controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28">
+
+            <!-- Oscilloscope -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="300" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Oscilloscope" Style="{StaticResource SectionTitle}" />
+                        <acc:Oscilloscope x:Name="Scope" MaxHeight="520" HorizontalAlignment="Left"
+                                          Trace2="{Binding ScopeTrace2}" Trace="{Binding ScopeTrace}"
+                                          TimePerDivision="{Binding TimePerDivision}" AmplitudePerDivision="{Binding AmplitudePerDivision}"
+                                          TriggerLevel="{Binding TriggerLevel}" TriggerMode="{Binding ScopeMode}" TriggerSlope="{Binding ScopeSlope}"
+                                          IsFrozen="{Binding ScopeFrozen}" Persistence="{Binding Persistence}" />
+                        <TextBlock Style="{StaticResource Note}" Margin="0,10,0,0"
+                                   Text="Channel 1 = left (green), channel 2 = right (amber). Try the 'Ref tone' source at 200 µs/div and 0.05 FS/div, or Program with Normal triggering on the kick." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="22,34,0,0">
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,0,0,12">
+                                <acc:RotaryKnob Width="76" Height="76" Minimum="0" Maximum="8" Step="1" TickCount="9" ShowValueArc="False"
+                                                DefaultValue="3" Value="{Binding TimeIndex}" />
+                                <TextBlock Text="TIME / DIV" Style="{StaticResource Caption}" />
+                                <TextBlock Text="{Binding TimePerDivisionText}" Style="{StaticResource Readout}" FontSize="13" />
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,12">
+                                <acc:RotaryKnob Width="76" Height="76" Minimum="0" Maximum="6" Step="1" TickCount="7" ShowValueArc="False"
+                                                DefaultValue="3" Value="{Binding AmplitudeIndex}" IndicatorColor="#FFFFC03A" />
+                                <TextBlock Text="AMPL / DIV" Style="{StaticResource Caption}" />
+                                <TextBlock Text="{Binding AmplitudePerDivisionText}" Style="{StaticResource Readout}" FontSize="13" />
+                            </StackPanel>
+                            <StackPanel>
+                                <acc:RotaryKnob Width="76" Height="76" Minimum="-1" Maximum="1" Step="0.01" Detent="0" DefaultValue="0"
+                                                Value="{Binding TriggerLevel}" IndicatorColor="#FFFFC03A" />
+                                <TextBlock Text="TRIG LEVEL" Style="{StaticResource Caption}" />
+                                <TextBlock Text="{Binding TriggerLevelText}" Style="{StaticResource Readout}" FontSize="13" />
+                            </StackPanel>
+                            <StackPanel>
+                                <acc:RotaryKnob Width="76" Height="76" Minimum="0" Maximum="8" Step="1" TickCount="9" DefaultValue="3"
+                                                Value="{Binding Persistence}" />
+                                <TextBlock Text="PERSISTENCE" Style="{StaticResource Caption}" />
+                                <TextBlock Text="{Binding Persistence, StringFormat={}{0:0} traces}" Style="{StaticResource Readout}" FontSize="13" />
+                            </StackPanel>
+                        </UniformGrid>
+
+                        <TextBlock Text="Trigger" Style="{StaticResource Caption}" HorizontalAlignment="Left" Margin="0,16,0,6" />
+                        <WrapPanel>
+                            <RadioButton Style="{StaticResource Segment}" GroupName="ScopeMode" Content="Free"
+                                         IsChecked="{Binding ScopeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Free}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="ScopeMode" Content="Auto"
+                                         IsChecked="{Binding ScopeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Auto}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="ScopeMode" Content="Normal"
+                                         IsChecked="{Binding ScopeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Normal}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="ScopeMode" Content="Single"
+                                         IsChecked="{Binding ScopeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Single}" />
+                        </WrapPanel>
+                        <WrapPanel Margin="0,4,0,0">
+                            <RadioButton Style="{StaticResource Segment}" GroupName="ScopeSlope" Content="↑ Rising"
+                                         IsChecked="{Binding ScopeSlope, Converter={StaticResource EnumEquals}, ConverterParameter=Rising}" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="ScopeSlope" Content="↓ Falling"
+                                         IsChecked="{Binding ScopeSlope, Converter={StaticResource EnumEquals}, ConverterParameter=Falling}" />
+                        </WrapPanel>
+                        <WrapPanel Margin="0,10,0,0">
+                            <acc:IlluminatedToggle OnLabel="Arm single" Mode="Momentary" LampColor="#FFFFC03A" Click="OnArm" Margin="0,0,8,8" />
+                            <acc:IlluminatedToggle OnLabel="Freeze" LampColor="#FF7CC8F0" IsChecked="{Binding ScopeFrozen}" Margin="0,0,8,8" />
+                            <acc:IlluminatedToggle OnLabel="CH 2" LampColor="#FFFFC03A" IsChecked="{Binding ShowChannel2}" Margin="0,0,8,8" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Waveform -->
+            <Border Style="{StaticResource ConsolePanel}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <TextBlock Text="Waveform display" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <acc:IlluminatedToggle OnLabel="Capture last 10 s" Mode="Momentary" LampColor="#FFFF2E1E" Command="{Binding CaptureCommand}" Margin="0,0,8,0" />
+                            <acc:IlluminatedToggle OnLabel="Play" LampColor="#FF6CF24A" IsChecked="{Binding IsPlaying}" Margin="0,0,8,0" />
+                            <acc:IlluminatedToggle OnLabel="Zoom to fit" Mode="Momentary" LampColor="#FF7CC8F0" Click="OnZoomToFit" />
+                        </StackPanel>
+                    </DockPanel>
+                    <acc:WaveformDisplay x:Name="Waveform" Height="280"
+                                         Source="{Binding Recording}" Playhead="{Binding Playhead}"
+                                         SelectionStart="{Binding SelectionStart}" SelectionEnd="{Binding SelectionEnd}" />
+                    <DockPanel Margin="0,8,0,0">
+                        <TextBlock Text="{Binding RecordingText}" Style="{StaticResource Note}" />
+                        <TextBlock Text="{Binding PlayheadText}" Style="{StaticResource Readout}" FontSize="13" Margin="18,0,0,0" />
+                        <TextBlock Text="{Binding SelectionText}" Style="{StaticResource Note}" HorizontalAlignment="Right" />
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Note}" Margin="0,6,0,0"
+                               Text="Click to place the playhead · drag to select (Play loops the selection) · wheel to zoom at the pointer · Shift+wheel or right-drag to scroll · Ctrl+wheel for amplitude · 0 fits. Broad zoom draws a peak-preserving min/max envelope per pixel; zoomed in you see individual samples." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

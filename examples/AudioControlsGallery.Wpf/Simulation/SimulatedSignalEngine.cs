@@ -48,6 +48,7 @@ public sealed class SimulatedSignalEngine : IDisposable
         Left = new SimulatedMeterSource(SampleRate);
         Right = new SimulatedMeterSource(SampleRate);
         Correlation = new SimulatedCorrelationSource(SampleRate);
+        History = new SimulatedWaveformSource(SampleRate);
         _thread = new Thread(Run) { IsBackground = true, Name = "Simulated audio engine", Priority = ThreadPriority.AboveNormal };
         _thread.Start();
     }
@@ -55,6 +56,9 @@ public sealed class SimulatedSignalEngine : IDisposable
     public SimulatedMeterSource Left { get; }
     public SimulatedMeterSource Right { get; }
     public SimulatedCorrelationSource Correlation { get; }
+
+    /// <summary>Recent stereo history for the oscilloscope and waveform captures.</summary>
+    public SimulatedWaveformSource History { get; }
 
     public SignalKind Signal
     {
@@ -84,6 +88,7 @@ public sealed class SimulatedSignalEngine : IDisposable
                 Left.Process(_left);
                 Right.Process(_right);
                 Correlation.Process(_left, _right);
+                History.Append(_left, _right);
                 produced += BlockSize;
             }
             Thread.Sleep(2);
